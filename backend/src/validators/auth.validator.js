@@ -8,7 +8,7 @@ function validateRequest(req, res, next) {
     next()
 }
 
- const validateRegister = [
+export const validateRegister = [
     body('email')
         .trim()
         .isEmail()
@@ -28,7 +28,7 @@ function validateRequest(req, res, next) {
         .trim()
         .notEmpty().withMessage('Fullname is required')
         .isLength({ min: 3 }).withMessage('Fullname must be at least 3 characters long'),
-        body('isSeller')
+    body('isSeller')
         .trim()
         .notEmpty().withMessage('isSeller is required')
         .isBoolean().withMessage('isSeller must be a boolean'),
@@ -36,4 +36,13 @@ function validateRequest(req, res, next) {
     validateRequest
 ]
 
-export default validateRegister
+export  const validateLogin = [
+    body('email')
+        .trim()
+        .isEmail()
+        .withMessage('Invalid email format'),
+    body('password')
+        .trim()
+        .notEmpty().withMessage('Password is required'),
+    validateRequest
+]

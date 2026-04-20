@@ -1,4 +1,4 @@
-import mongoose  from "mongoose";
+import mongoose from "mongoose";
 import bcrypt from 'bcryptjs'
 
 
@@ -11,15 +11,23 @@ let userSChema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: true
-    },  
+        required: function () {
+            return !this.googleId
+        }
+    },
     contact: {
         type: String,
-        required: true
+        required: function () {
+            return !this.googleId
+        }
     },
     fullname: {
         type: String,
         required: true
+    },
+    googleId: {
+        type: String,
+        default: null
     },
     role: {
         type: String,
@@ -27,16 +35,17 @@ let userSChema = new mongoose.Schema({
         default: 'buyer'
     }
 })
-userSChema.pre("save",async function(){
-    if(!this.isModified("password")) return 
+userSChema.pre("save", async function () {
+    if (!this.password || !this.isModified("password")) return
 
 
-    let hash = await bcrypt.hash(this.password,10)
-    this.password = hash    
+    let hash = await bcrypt.hash(this.password, 10)
+    this.password = hash
 })
 
-userSChema.methods.comparePassword = async function(password){
-    return await bcrypt.compare(password,this.password)
+userSChema.methods.comparePassword = async function (password) {
+    if (!this.password) return false
+    return await bcrypt.compare(password, this.password)
 }
 
 

@@ -1,18 +1,39 @@
-import { seterror,setloading,setuser } from "../state/auth.slice";
-import { register } from "../services/auth.sevice";
+import { seterror, setloading, setuser } from "../state/auth.slice";
+import { register ,getme} from "../services/auth.sevice";
+import { useDispatch } from 'react-redux'
+import { login } from "../services/auth.sevice";
 
 export const useAuth = () => {
     const dispatch = useDispatch()
-    const handlerregister = async({email,password,contact,fullname,isSeller})=>{
+    const handlerregister = async ({ email, password, contact, fullname, isSeller }) => {
         try {
-            dispatch(setloading(true))
-            const response = await register({email,password,contact,fullname,isSeller})
-            dispatch(setuser(response.data))
-            dispatch(setloading(false))
+            dispatch(setloading(true));
+            const response = await register({ email, password, contact, fullname, isSeller });
+            // Token is set by backend in httpOnly cookies, no need to set here
+            dispatch(setuser(response));
+            dispatch(setloading(false));
+            return response;
         } catch (error) {
-            dispatch(seterror(error.response.data.message))
-            dispatch(setloading(false))
+            dispatch(seterror(error?.response?.data?.message));
+            dispatch(setloading(false));
+            throw error;
         }
     }
-    return {handlerregister}
+    const handlerlogin = async ({ email, password }) => {
+        try {
+            dispatch(setloading(true));
+            const response = await login({ email, password });
+            // Token is set by backend in httpOnly cookies, no need to set here
+            dispatch(setuser(response));
+            dispatch(setloading(false));
+            return response;
+        } catch (error) {
+            dispatch(seterror(error?.response?.data?.message));
+            dispatch(setloading(false));
+            throw error;
+        }
+    }
+    
+
+    return { handlerregister, handlerlogin }
 }
