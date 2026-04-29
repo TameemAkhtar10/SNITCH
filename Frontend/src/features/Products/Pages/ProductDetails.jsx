@@ -3,6 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import UseProduct from '../Hooks/UseProduct'
 import './ProductDetails.css'
+import { useCart } from '../../Cart/Hooks/UseCart.js'
+
+
+
+
 
 const getToken = () => {
     const match = document.cookie.match(new RegExp("(^| )token=([^;]+)"));
@@ -14,6 +19,7 @@ const ProductDetails = () => {
     const navigate = useNavigate()
     const token = getToken()
 
+    const { addToCarthandler } = useCart()
     const { currentProduct: product, loading, error } = useSelector((state) => state.product)
 
     // Debug: log variants structure
@@ -31,6 +37,8 @@ const ProductDetails = () => {
     const [currentImageIndex, setCurrentImageIndex] = React.useState(0)
     const [variantImageIndex, setVariantImageIndex] = React.useState({})
     const [selectedVariantIndex, setSelectedVariantIndex] = React.useState(null)
+    const [cartLoading, setCartLoading] = React.useState(false)
+    const [cartMessage, setCartMessage] = React.useState("")
 
     const getVariantAttr = (variant, key) => {
         const attributes = variant?.attributes
@@ -180,6 +188,55 @@ const ProductDetails = () => {
         }
     }
 
+    const handleAddToCart = async () => {
+        if (displayedStock === 0) {
+            setCartMessage("❌ Out of stock!")
+            setTimeout(() => setCartMessage(""), 3000)
+            return
+        }
+
+        if (!token) {
+            navigate('/login', { state: { from: `/product/${productId}` } })
+            return
+        }
+
+        setCartLoading(true)
+        try {
+            // Use first variant as default if no variant selected
+            let variantToUse = selectedVariant
+            if (!variantToUse && variants.length > 0) {
+                variantToUse = variants[0]
+            }
+
+            if (!variantToUse) {
+                setCartMessage("❌ Please select a variant")
+                setCartLoading(false)
+                setTimeout(() => setCartMessage(""), 3000)
+                return
+            }
+
+            const variantId = variantToUse._id
+            const cartData = {
+                quantity: quantity,
+                amount: displayedPrice,
+                currency: displayedCurrency
+            }
+            await addToCarthandler(productId, variantId, cartData)
+            setCartMessage("✅ Added to cart!")
+            setTimeout(() => setCartMessage(""), 3000)
+
+        } catch (error) {
+            setCartMessage("❌ Failed to add to cart")
+            setTimeout(() => setCartMessage(""), 3000)
+        } finally {
+            setCartLoading(false)
+        }
+    }
+
+    const handleBuyNow = () => {
+        handleBuy()
+    }
+
     if (loading) {
         return (
             <div className='product-details-root'>
@@ -301,7 +358,7 @@ const ProductDetails = () => {
                                 <span className='spec-value'>{product.category}</span>
                             </div>
                         )}
-                       
+
                         {product.createdAt && (
                             <div className='spec-row'>
                                 <span className='spec-label'>Listed:</span>
@@ -350,7 +407,7 @@ const ProductDetails = () => {
                                 </div>
                             )}
 
-                            
+
                         </div>
                     )}
 
@@ -407,19 +464,34 @@ const ProductDetails = () => {
                         <div className='pd-buy-actions'>
                             <button
                                 className='pd-add-to-cart-btn'
-                                onClick={handleBuy}
-                                disabled={displayedStock === 0}
+                                onClick={handleAddToCart}
+                                disabled={displayedStock === 0 || cartLoading}
                             >
-                                ADD TO CART
+                                {cartLoading ? 'Adding...' : 'ADD TO CART'}
                             </button>
                             <button
                                 className='pd-buy-now-btn'
-                                onClick={handleBuy}
+                                onClick={handleBuyNow}
                                 disabled={displayedStock === 0}
                             >
                                 {token ? 'BUY NOW' : 'LOGIN TO BUY'}
                             </button>
                         </div>
+
+                        {cartMessage && (
+                            <p style={{
+                                textAlign: 'center',
+                                padding: '0.75rem',
+                                marginTop: '1rem',
+                                borderRadius: '6px',
+                                backgroundColor: cartMessage.includes('✅') ? '#d1fae5' : '#fee2e2',
+                                color: cartMessage.includes('✅') ? '#059669' : '#dc2626',
+                                fontSize: '0.875rem',
+                                fontWeight: '500'
+                            }}>
+                                {cartMessage}
+                            </p>
+                        )}
 
                         {!token && (
                             <p className='login-hint'>Please login to make a purchase</p>
@@ -428,7 +500,7 @@ const ProductDetails = () => {
                 </div>
             </div>
 
-            <style>{`
+            <style>{`   
                 @keyframes fadeInUp {
                     from {
                         opacity: 0;
@@ -440,7 +512,7 @@ const ProductDetails = () => {
                     }
                 }
             `}</style>
-        </div>
+        </div >
     )
 }
 
