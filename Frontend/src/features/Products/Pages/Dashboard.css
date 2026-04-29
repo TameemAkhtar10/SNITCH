@@ -3,7 +3,6 @@
     background: #ffffff;
 }
 
-/* Header Section */
 .dashboard-header {
     background: linear-gradient(135deg, #111111 0%, #2a2a2a 100%);
     color: #ffffff;
@@ -87,14 +86,12 @@
     font-weight: 300;
 }
 
-/* Container */
 .dashboard-container {
     max-width: 1400px;
     margin: 0 auto;
     padding: 3rem 2rem;
 }
 
-/* Filter Bar */
 .dashboard-filter {
     display: flex;
     justify-content: space-between;
@@ -262,7 +259,7 @@
 /* Products Grid */
 .dashboard-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
     gap: 2rem;
 }
 
@@ -448,11 +445,12 @@
 /* Card Actions */
 .product-card-actions {
     margin-top: auto;
+    display: flex;
+    gap: 0.5rem;
 }
 
 .action-link {
-    display: block;
-    width: 100%;
+    flex: 1;
     padding: 0.75rem 1rem;
     background: #111111;
     color: #c9a84c;
@@ -470,6 +468,26 @@
 .action-link:hover {
     background: #c9a84c;
     color: #111111;
+}
+
+.action-link.edit-btn {
+    background: #1a5f3a;
+    color: #ffffff;
+}
+
+.action-link.edit-btn:hover {
+    background: #2a7f5a;
+    color: #ffffff;
+}
+
+.action-link.delete-btn {
+    background: #8b0000;
+    color: #ffffff;
+}
+
+.action-link.delete-btn:hover {
+    background: #b80000;
+    color: #ffffff;
 }
 
 /* Empty State */

@@ -10,9 +10,8 @@ export const register = async ({ email, password, contact, fullname, isSeller })
         const response = await api.post('/register', { email, password, contact, fullname, isSeller })
         return response.data
     } catch (error) {
-        console.log(error);
-
-
+        console.log("Register error:", error);
+        throw error;
     }
 }
 export const login = async ({ email, password }) => {
@@ -21,7 +20,8 @@ export const login = async ({ email, password }) => {
         return response.data
     }
     catch (error) {
-        console.log(error);
+        console.log("Login error:", error);
+        throw error;
     }
 }
 export const getme = async () => {
@@ -30,7 +30,7 @@ export const getme = async () => {
         return response.data
     }
     catch (error) {
-        console.log(error)
-    
+        console.log("Get user failed:", error)
+        throw error  // Throw error so caller knows request failed
     }
 }

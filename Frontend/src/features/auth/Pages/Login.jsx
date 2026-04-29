@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.js";
+import Toast from "./Toast.jsx";
 import "./Auth.css";
 
 const Login = () => {
@@ -24,6 +25,14 @@ const Login = () => {
         event.preventDefault();
         setError("");
         setLoading(true);
+
+        // Validate inputs
+        if (!formData.email || !formData.password) {
+            setError("Please enter both email and password");
+            setLoading(false);
+            return;
+        }
+
         try {
             const response = await handlerlogin({ email: formData.email, password: formData.password });
 
@@ -34,7 +43,9 @@ const Login = () => {
                 navigate("/home");
             }
         } catch (err) {
-            setError(err?.response?.data?.message || "Unable to sign in right now.");
+            const errorMsg = err?.response?.data?.message || err?.message || "Unable to sign in right now.";
+            console.log("Login error details:", errorMsg);
+            setError(errorMsg);
         } finally {
             setLoading(false);
         }
@@ -50,7 +61,7 @@ const Login = () => {
                 </div>
             </aside>
 
-            <div className="auth-form-shell flex w-full items-center px-7 py-12 sm:px-10 md:w-1/2 md:px-16">
+            <div className="auth-form-shell flex w-full justify-center items-center px-7 py-12 sm:px-10 md:w-1/2 md:px-16">
                 <div className="auth-form-container mx-auto">
                     <p className="auth-overline">Snitch Members</p>
                     <h2 className="auth-title">Sign In</h2>
@@ -88,8 +99,6 @@ const Login = () => {
                             </label>
                         </div>
 
-                        {error ? <p className="auth-error">{error}</p> : null}
-
                         <button type="submit" className="auth-button" disabled={loading}>
                             {loading ? "..." : "Sign In"}
                         </button>
@@ -110,6 +119,12 @@ const Login = () => {
                     </p>
                 </div>
             </div>
+
+            <Toast
+                message={error}
+                type="error"
+                onClose={() => setError("")}
+            />
         </section>
     );
 };

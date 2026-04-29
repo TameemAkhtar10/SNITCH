@@ -8,6 +8,8 @@ import cookieParser from 'cookie-parser';
 
 import routes from '../src/routes/auth.routes.js'
 import productRoutes from '../src/routes/product.route.js'
+import variantRoutes from '../src/routes/variant.routes.js'
+import cartRoutes from '../src/routes/cart.routes.js'
 
 
 const app = express();
@@ -31,4 +33,6 @@ app.use(express.json());
 app.use(morgan('dev'));
 app.use('/api/auth', routes)
 app.use('/api/product', productRoutes)
+app.use('/api/products', variantRoutes)
+app.use('/api/cart', cartRoutes)
 export default app; 

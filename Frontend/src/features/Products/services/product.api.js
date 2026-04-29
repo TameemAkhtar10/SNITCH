@@ -37,3 +37,22 @@ export const getAllproducts = async () => {
         console.log(error);
     }
 }
+export const getProductById = async (productId) => {
+    try {
+        const response = await api.get(`/${productId}`)
+        return response.data
+    } catch (error) {
+        console.log(error);
+    }
+
+}
+
+export const updateProduct = async (productId, formData) => {
+    try {
+        const response = await api.put(`/${productId}`, formData)
+        return response.data
+    } catch (error) {
+        console.log(error);
+        throw error;
+    }
+}   

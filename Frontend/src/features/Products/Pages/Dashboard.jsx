@@ -32,7 +32,6 @@ const Dashboard = () => {
 
     const handleDelete = (productId) => {
         console.log("Delete product:", productId);
-        // Add delete functionality 
     };
 
     const handleEdit = (productId) => {
@@ -43,7 +42,6 @@ const Dashboard = () => {
 
     return (
         <section className="dashboard-root">
-            {/* Header Section */}
             <div className="dashboard-header">
                 <div className="dashboard-header-content">
                     <div>
@@ -63,9 +61,7 @@ const Dashboard = () => {
                 </div>
             </div>
 
-            {/* Main Content */}
             <div className="dashboard-container">
-                {/* Filter Bar */}
                 <div className="dashboard-filter">
                     <div className="filter-group">
                         <button
@@ -96,7 +92,6 @@ const Dashboard = () => {
                     </button>
                 </div>
 
-                {/* Error State */}
                 {error && (
                     <div className="dashboard-error">
                         <p>{error}</p>
@@ -104,7 +99,7 @@ const Dashboard = () => {
                     </div>
                 )}
 
-                {/* Loading State */}
+
                 {loading ? (
                     <div className="dashboard-loading">
                         <div className="loader"></div>
@@ -144,7 +139,12 @@ const Dashboard = () => {
                         {/* Products Grid */}
                         <div className="dashboard-grid">
                             {filteredProducts.map((product) => (
-                                <div key={product._id} className="product-card">
+                                <div key={product._id} className="product-card" onClick={() => {
+                                    console.log('done');
+                                    console.log('Editing product:', product._id);
+                                    navigate(`/seller/edit-product/${product._id}`);
+
+                                }}>
                                     {/* Product Image */}
                                     <div className="product-card-image">
                                         {product.images && product.images.length > 0 ? (
@@ -160,8 +160,8 @@ const Dashboard = () => {
                                         )}
                                         <div className="product-overlay">
                                             <div className="overlay-actions">
-                                              
-                                               
+
+
                                             </div>
                                         </div>
                                         {product.status === "featured" && (
@@ -201,7 +201,7 @@ const Dashboard = () => {
                                         {product.variants && (
                                             <div className="product-variants">
                                                 <span className="variant-label">
-                                                    Variants: {product.variants}
+                                                    Variants: {product.variants?.length || 0}
                                                 </span>
                                             </div>
                                         )}
@@ -210,14 +210,12 @@ const Dashboard = () => {
                                         <div className="product-card-actions">
                                             <button
                                                 className="action-link view-btn"
-                                                onClick={() =>
-                                                    navigate(
-                                                        `/product/${product._id}`
-                                                    )
-                                                }
+
                                             >
                                                 View Details
                                             </button>
+
+
                                         </div>
                                     </div>
                                 </div>
