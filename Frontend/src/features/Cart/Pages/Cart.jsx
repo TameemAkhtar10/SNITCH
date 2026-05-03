@@ -232,7 +232,7 @@ const Cart = () => {
                             {items.map((item) => {
                                 const product = item?.product
                                 const title = product?.title || 'Unknown Piece'
-                                const img = product?.images?.[0]?.url
+                                const img = item?.variant?.images?.[0]?.url || product?.images?.[0]?.url
                                 const qty = Number(item?.quantity || 1)
                                 const amount = Number(item?.amount || 0)
                                 const currentPrice = Number(product?.price?.amount || 0)
@@ -266,6 +266,20 @@ const Cart = () => {
                                                         {title}
                                                     </h3>
                                                 </div>
+                                                {(color || size) && (
+                                                    <div className="flex flex-wrap gap-2 mb-3">
+                                                        {color && (
+                                                            <span className="inline-flex items-center rounded-full border border-[var(--border)] px-3 py-1 text-[10px] uppercase tracking-[0.2em] premium-text-muted">
+                                                                {color}
+                                                            </span>
+                                                        )}
+                                                        {size && (
+                                                            <span className="inline-flex items-center rounded-full border border-[var(--border)] px-3 py-1 text-[10px] uppercase tracking-[0.2em] premium-text-muted">
+                                                                {size}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                )}
                                                 <p className="text-lg font-light mb-1">{formatMoney(amount)}</p>
                                                 {currentPrice > amount ? (
                                                     <p className="text-[10px] uppercase tracking-widest text-[var(--danger)] mb-4">Price increased</p>
