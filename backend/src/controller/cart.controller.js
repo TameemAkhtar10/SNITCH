@@ -8,12 +8,13 @@ const toNumber = (value, fallback = 0) => {
 }
 
 const buildCartItemResponse = (item) => {
-    const product = item.product
-    const variantId = item.variant ? String(item.variant) : null
+    const itemObj = item.toObject ? item.toObject() : item
+    const product = itemObj.product
+    const variantId = itemObj.variant ? String(itemObj.variant) : null
 
     if (!product || !variantId) {
         return {
-            ...item,
+            ...itemObj,
             variantId,
             variant: null,
             productStock: null,
@@ -27,7 +28,7 @@ const buildCartItemResponse = (item) => {
 
     if (variantId === productId) {
         return {
-            ...item,
+            ...itemObj,
             variantId,
             variant: null,
             productStock,
@@ -36,16 +37,16 @@ const buildCartItemResponse = (item) => {
         }
     }
 
-    const matchedVariant = Array.isArray(product.variants)
-        ? product.variants.find((variant) => String(variant._id) === variantId)
+    const matchedVariant = variantId && Array.isArray(product?.variants)
+        ? product.variants.find((v) => String(v._id) === variantId)
         : null
     const variantStock = matchedVariant ? toNumber(matchedVariant.stock, 0) : null
     const stock = variantStock ?? productStock
 
     return {
-        ...item,
+        ...itemObj,
         variantId,
-        variant: matchedVariant ? { ...matchedVariant, stock: variantStock } : null,
+        variant: matchedVariant,
         productStock,
         variantStock,
         stock,
@@ -131,11 +132,30 @@ export const getCart = async (req, res) => {
         const cartObj = cart.toObject();
         cartObj.items = (cartObj.items || []).map((item) => buildCartItemResponse(item));
 
+        // Calculate totals via aggregation
+        const cartAggregation = await Cartmodel.aggregate([
+            { $match: { user: req.user._id } },
+            { $unwind: '$items' },
+            {
+                $group: {
+                    _id: '$_id',
+                    subtotal: { $sum: { $multiply: ['$items.amount', '$items.quantity'] } },
+                    totalItems: { $sum: '$items.quantity' },
+                    itemCount: { $sum: 1 }
+                }
+            }
+        ]).exec();
+
+        const totals = cartAggregation && cartAggregation.length ? cartAggregation[0] : { subtotal: 0, totalItems: 0, itemCount: 0 }
+
         res.status(200).json({
             success: true,
             message: 'Cart retrieved successfully',
             cart: cartObj,
             items: cartObj.items,
+            subtotal: totals.subtotal || 0,
+            totalItems: totals.totalItems || 0,
+            itemCount: totals.itemCount || 0,
             data: { cart: cartObj, items: cartObj.items },
         });
     } catch (error) {
@@ -204,3 +224,4 @@ export const removeCartItem = async (req, res) => {
         return res.status(500).json({ success: false, message: 'Internal server error', data: {} });
     }
 }
+
