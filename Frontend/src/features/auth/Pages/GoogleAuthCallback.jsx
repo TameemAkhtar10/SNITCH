@@ -7,14 +7,13 @@ const GoogleAuthCallback = () => {
     const user = useSelector((state) => state.auth.user);
 
     useEffect(() => {
-        // Extract token from URL query parameter
         const params = new URLSearchParams(window.location.search);
-        const token = params.get("token");
+        const redirectTo = params.get("redirectTo");
 
-        if (token) {
-            // Token already set by backend in cookies during OAuth callback
-            // Check user role and redirect accordingly
-            if (user?.role === "seller") {
+        if (user) {
+            if (redirectTo) {
+                navigate(redirectTo, { replace: true });
+            } else if (user?.role === "seller") {
                 navigate("/seller", { replace: true });
             } else {
                 navigate("/home", { replace: true });
@@ -22,7 +21,7 @@ const GoogleAuthCallback = () => {
         } else {
             navigate("/login", { replace: true });
         }
-    }, [navigate, user?.role]);
+    }, [navigate, user]);
 
     return (
         <div className="flex items-center justify-center min-h-screen">

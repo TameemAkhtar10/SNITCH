@@ -2,7 +2,7 @@ import { RouterProvider } from "react-router-dom";
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { router } from "./app.routes.jsx";
-import { setuser, setInitializing } from "../features/auth/state/auth.slice";
+import { setuser, setInitializing, logout } from "../features/auth/state/auth.slice";
 import { getme } from "../features/auth/services/auth.sevice";
 
 const App = () => {
@@ -14,15 +14,12 @@ const App = () => {
         const restoreUserSession = async () => {
             try {
                 const userData = await getme();
-                if (userData) {
-                    dispatch(setuser(userData.user));
-                    console.log(userData);
-                    
-                }
+                dispatch(setuser(userData?.user || userData?.data?.user || userData));
             } catch (error) {
+                dispatch(logout());
                 console.log("No active session or session expired");
             } finally {
-               
+
                 dispatch(setInitializing(false));
             }
         };

@@ -1,4 +1,4 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 
 const getToken = () => {
@@ -10,6 +10,7 @@ const BuyProtectedRoute = ({ children }) => {
     const token = getToken();
     const user = useSelector((state) => state.auth.user);
     const initializing = useSelector((state) => state.auth.initializing);
+    const location = useLocation();
 
     // Wait for initialization to complete
     if (initializing) {
@@ -18,7 +19,7 @@ const BuyProtectedRoute = ({ children }) => {
 
     // Check if user has token
     if (!token) {
-        return <Navigate to="/login" replace />;
+        return <Navigate to="/login" replace state={{ from: location }} />;
     }
 
     // Check if user is not a seller (buyers can access)

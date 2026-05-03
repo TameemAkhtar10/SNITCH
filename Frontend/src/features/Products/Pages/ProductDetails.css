@@ -453,7 +453,6 @@
 /* Image Counter */
 .image-counter {
     position: absolute;
-    top: 15px;
     right: 25px;
     background: rgba(0, 0, 0, 0.7);
     color: #c9a84c;

@@ -1,0 +1,23 @@
+import { body, validationResult } from 'express-validator'
+
+const validateRequest = (req, res, next) => {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ success: false, message: 'Validation failed', data: { errors: errors.array() } })
+    }
+    next()
+}
+
+export const validateAddVariant = [
+    body('stock').isInt({ min: 0 }).withMessage('Stock must be a number greater than or equal to 0'),
+    body('priceAmount').isFloat({ gt: 0 }).withMessage('Price must be a valid number greater than 0'),
+    body('priceCurrency').optional().isString().withMessage('Price currency must be a string'),
+    validateRequest,
+]
+
+export const validateUpdateVariant = [
+    body('stock').optional().isInt({ min: 0 }).withMessage('Stock must be a number greater than or equal to 0'),
+    body('priceAmount').optional().isFloat({ gt: 0 }).withMessage('Price must be a valid number greater than 0'),
+    body('priceCurrency').optional().isString().withMessage('Price currency must be a string'),
+    validateRequest,
+]

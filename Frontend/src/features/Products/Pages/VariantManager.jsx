@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import useVariant from '../Hooks/useVariant'
-import '../Pages/CreateProduct.css'
 
 const VariantManager = ({ productId, onVariantAdded }) => {
     const [showForm, setShowForm] = useState(false)
@@ -30,7 +29,6 @@ const VariantManager = ({ productId, onVariantAdded }) => {
     const handleSubmit = async (e) => {
         e.preventDefault()
         clearMessages()
-
         try {
             const formDataToSend = new FormData()
             formDataToSend.append('stock', formData.stock)
@@ -41,19 +39,11 @@ const VariantManager = ({ productId, onVariantAdded }) => {
             const response = await addVariant(productId, formDataToSend)
 
             if (response) {
-                setFormData({
-                    stock: '',
-                    priceAmount: '',
-                    priceCurrency: 'INR',
-                })
+                setFormData({ stock: '', priceAmount: '', priceCurrency: 'INR' })
                 setVariantImages([])
                 setImagePreviews([])
                 setShowForm(false)
-
-                if (onVariantAdded) {
-                    onVariantAdded(response.variant)
-                }
-
+                if (onVariantAdded) onVariantAdded(response.variant)
                 setTimeout(() => clearMessages(), 3000)
             }
         } catch (err) {
@@ -62,131 +52,168 @@ const VariantManager = ({ productId, onVariantAdded }) => {
     }
 
     return (
-        <div className="variant-manager" style={{ marginTop: '2rem', padding: '1.5rem', border: '1px solid #e5e7eb', borderRadius: '8px', backgroundColor: '#f9fafb' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: '600', color: '#111827' }}>
-                    Product Variants
-                </h3>
+        <div className="flex flex-col gap-8">
+            <style>{`
+                .vm-input {
+                    background: var(--bg-secondary);
+                    border: 1px solid var(--border);
+                    color: var(--text-primary);
+                    font-family: 'Outfit', sans-serif;
+                    width: 100%;
+                    padding: 12px 16px;
+                    font-size: 0.88rem;
+                    outline: none;
+                    transition: border-color 0.3s ease;
+                }
+                .vm-input:focus { border-color: var(--accent); }
+                .vm-input::placeholder { color: var(--text-secondary); }
+
+                .vm-upload {
+                    background: var(--bg-secondary);
+                    border: 1px dashed var(--border);
+                    transition: border-color 0.3s ease;
+                    cursor: pointer;
+                }
+                .vm-upload:hover { border-color: var(--accent); }
+
+                .vm-btn-primary {
+                    background: var(--text-primary);
+                    color: var(--bg-primary);
+                    transition: all 0.3s ease;
+                    font-family: 'Outfit', sans-serif;
+                }
+                .vm-btn-primary:hover:not(:disabled) {
+                    background: var(--accent);
+                    color: #fff;
+                    transform: translateY(-1px);
+                }
+                .vm-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+                .vm-btn-secondary {
+                    background: transparent;
+                    border: 1px solid var(--border);
+                    color: var(--text-secondary);
+                    font-family: 'Outfit', sans-serif;
+                    transition: all 0.3s ease;
+                }
+                .vm-btn-secondary:hover {
+                    border-color: var(--text-primary);
+                    color: var(--text-primary);
+                }
+            `}</style>
+
+            {/* Header */}
+            <div className="flex justify-between items-center">
+                <p className="text-[10px] uppercase tracking-[0.2em] premium-text-muted">Product Variants</p>
                 <button
                     type="button"
                     onClick={() => setShowForm(!showForm)}
-                    style={{
-                        padding: '0.5rem 1rem',
-                        backgroundColor: showForm ? '#ef4444' : '#c9a84c',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontSize: '0.875rem',
-                        fontWeight: '500',
-                        transition: 'background-color 0.2s',
-                    }}
-                    onMouseOver={(e) => (e.target.style.backgroundColor = showForm ? '#dc2626' : '#d4b765')}
-                    onMouseOut={(e) => (e.target.style.backgroundColor = showForm ? '#ef4444' : '#c9a84c')}
+                    className="text-[10px] uppercase tracking-[0.2em] transition-colors"
+                    style={{ color: showForm ? 'var(--text-secondary)' : 'var(--accent)' }}
                 >
-                    {showForm ? '✕ Close' : '+ Add Variant'}
+                    {showForm ? '✕ Close' : '[+ Add Variant]'}
                 </button>
             </div>
 
+            {/* Form */}
             {showForm && (
-                <form onSubmit={handleSubmit} style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-                    <div style={{ marginBottom: '1.5rem', display: 'grid', gridTemplateColumns: '1fr 1fr 150px', gap: '1rem' }}>
-                        <div className="product-field">
+                <form onSubmit={handleSubmit} className="flex flex-col gap-6 p-8 border border-[var(--border)] premium-surface">
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        <div>
+                            <label className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-3 block">Stock Quantity</label>
                             <input
                                 type="number"
                                 name="stock"
                                 value={formData.stock}
                                 onChange={handleInputChange}
-                                className="product-input"
-                                placeholder=" "
+                                className="vm-input"
+                                placeholder="0"
                                 required
                             />
-                            <label className="product-label">Stock Quantity</label>
                         </div>
 
-                        <div className="product-field">
+                        <div>
+                            <label className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-3 block">Price</label>
                             <input
                                 type="number"
                                 name="priceAmount"
                                 value={formData.priceAmount}
                                 onChange={handleInputChange}
-                                className="product-input"
-                                placeholder=" "
+                                className="vm-input"
+                                placeholder="0.00"
                                 step="0.01"
                                 required
                             />
-                            <label className="product-label">Price</label>
                         </div>
 
-                        <div className="product-field">
+                        <div>
+                            <label className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-3 block">Currency</label>
                             <select
                                 name="priceCurrency"
                                 value={formData.priceCurrency}
                                 onChange={handleInputChange}
-                                className="product-select"
+                                className="vm-input appearance-none"
                             >
                                 <option value="INR">INR</option>
                                 <option value="USD">USD</option>
                                 <option value="EUR">EUR</option>
                             </select>
-                            <label className="product-label product-label--active">Currency</label>
                         </div>
                     </div>
+
+                    {/* Upload */}
                     <div
-                        className="product-upload-zone"
+                        className="vm-upload p-12 flex flex-col items-center justify-center text-center"
                         onClick={() => document.getElementById('variant-images').click()}
-                        style={{ marginBottom: '1.5rem' }}
                     >
                         <input
                             id="variant-images"
                             type="file"
                             multiple
                             accept="image/*"
-                            className="product-file-input"
+                            className="hidden"
                             onChange={handleImageChange}
                         />
-                        <div className="product-upload-icon">↑</div>
-                        <p className="product-upload-text">
+                        <div className="text-xl mb-3 premium-text-muted font-light">↑</div>
+                        <p className="text-sm font-medium mb-2">
                             {variantImages.length === 0 ? 'Click to upload variant images' : `${variantImages.length} image(s) selected`}
                         </p>
-                        <p className="product-upload-sub">Max 5 images · 5MB each</p>
+                        <p className="text-[10px] uppercase tracking-widest premium-text-muted">Max 5 · 5MB each</p>
                     </div>
+
+                    {/* Previews */}
                     {imagePreviews.length > 0 && (
-                        <div style={{ marginBottom: '1.5rem' }}>
-                            <p style={{ fontSize: '0.875rem', fontWeight: '600', color: '#6b7280', marginBottom: '0.75rem' }}>
-                                Image Previews
-                            </p>
-                            <div className="product-preview-grid">
+                        <div>
+                            <p className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-4">Preview</p>
+                            <div className="flex flex-wrap gap-4">
                                 {imagePreviews.map((preview, index) => (
-                                    <div key={index} className="product-preview-item">
-                                        <img src={preview} alt={`Variant preview ${index + 1}`} />
+                                    <div key={index} className="w-20 h-28 overflow-hidden border border-[var(--border)]">
+                                        <img src={preview} alt={`Variant preview ${index + 1}`} className="w-full h-full object-cover" />
                                     </div>
                                 ))}
                             </div>
                         </div>
                     )}
 
-                    {error && <p style={{ color: '#dc2626', marginBottom: '1rem', padding: '0.75rem', backgroundColor: '#fee2e2', borderRadius: '6px' }}>❌ {error}</p>}
-                    {success && <p style={{ color: '#059669', marginBottom: '1rem', padding: '0.75rem', backgroundColor: '#d1fae5', borderRadius: '6px' }}>✓ {success}</p>}
+                    {/* Messages */}
+                    {error && (
+                        <div className="p-4 border border-[var(--danger)] text-[var(--danger)] text-xs uppercase tracking-widest text-center">
+                            {error}
+                        </div>
+                    )}
+                    {success && (
+                        <div className="p-4 border border-[var(--success)] text-[var(--success)] text-xs uppercase tracking-widest text-center">
+                            {success}
+                        </div>
+                    )}
 
-                    <div style={{ display: 'flex', height: 'fit-content', gap: '1rem' }}>
-                        <button type="submit" className="product-btton mt-0" disabled={loading}>
-                            {loading ? 'Adding Variant...' : 'Add Variant'}
+                    {/* Buttons */}
+                    <div className="flex gap-4 pt-2">
+                        <button type="submit" className="vm-btn-primary flex-[2] px-8 py-4 text-[10px] uppercase tracking-[0.2em] font-medium" disabled={loading}>
+                            {loading ? 'Adding...' : 'Add Variant'}
                         </button>
-                        <button
-                            type="button"
-                            onClick={() => setShowForm(false)}
-                            style={{
-                                flex: 1,
-                                padding: '0.75rem',
-                                backgroundColor: '#e5e7eb',
-                                color: '#374151',
-                                border: 'none',
-                                borderRadius: '6px',
-                                cursor: 'pointer',
-                                fontWeight: '500',
-                            }}
-                        >
+                        <button type="button" onClick={() => setShowForm(false)} className="vm-btn-secondary flex-1 px-8 py-4 text-[10px] uppercase tracking-[0.2em] font-medium">
                             Cancel
                         </button>
                     </div>

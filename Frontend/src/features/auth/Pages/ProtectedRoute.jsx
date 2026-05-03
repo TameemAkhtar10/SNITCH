@@ -1,4 +1,4 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 
 const getToken = () => {
@@ -11,13 +11,14 @@ const getToken = () => {
 const ProtectedRoute = ({ children }) => {
     const token = getToken();
     const initializing = useSelector((state) => state.auth.initializing);
+    const location = useLocation();
 
     // Wait for initialization to complete
     if (initializing) {
         return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '18px' }}>Loading...</div>;
     }
 
-    if (!token) return <Navigate to="/login" replace />;
+    if (!token) return <Navigate to="/login" replace state={{ from: location }} />;
     return children;
 };
 

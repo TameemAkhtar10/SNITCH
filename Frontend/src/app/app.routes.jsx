@@ -10,6 +10,8 @@ import GoogleAuthCallback from "../features/auth/Pages/GoogleAuthCallback.jsx";
 import Home from "../features/Products/Pages/Home.jsx";
 import ProductDetails from "../features/Products/Pages/ProductDetails.jsx";
 import SellerProductDetail from "../features/Products/Pages/SellerProductDetail.jsx";
+import Cart from "../features/Cart/Pages/Cart.jsx";
+import Wishlist from "../features/Wishlist/Pages/Wishlist.jsx";
 export const router = createBrowserRouter([
     { path: "/login", element: <Login /> },
     { path: "/register", element: <Register /> },
@@ -23,6 +25,14 @@ export const router = createBrowserRouter([
         element: <ProductDetails />
     },
     {
+        path: "/cart",
+        element: <BuyProtectedRoute><Cart /></BuyProtectedRoute>
+    },
+    {
+        path: "/wishlist",
+        element: <BuyProtectedRoute><Wishlist /></BuyProtectedRoute>
+    },
+    {
         path: "/seller",
         element: <SellerRoute><Dashboard /></SellerRoute>
     },
@@ -34,6 +44,8 @@ export const router = createBrowserRouter([
         path: "/seller/edit-product/:productId",
         element: <SellerRoute><SellerProductDetail /></SellerRoute>
     },
+
+
     {
         path: '/seller-product/:productId',
         element: <SellerRoute><SellerProductDetail /></SellerRoute>

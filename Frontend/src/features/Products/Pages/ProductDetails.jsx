@@ -1,17 +1,42 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
+import axios from 'axios'
 import UseProduct from '../Hooks/UseProduct'
-import './ProductDetails.css'
 import { useCart } from '../../Cart/Hooks/UseCart.js'
-
-
-
-
+import UseWishlist from '../../Wishlist/Hooks/UseWishlist.js'
+import UseReview from '../../Reviews/Hooks/UseReview.js'
+import { addRecentlyViewed } from '../services/recentlyViewed.service.js'
 
 const getToken = () => {
     const match = document.cookie.match(new RegExp("(^| )token=([^;]+)"));
     return match ? match[2] : null;
+};
+
+const renderStars = (rating = 0) => {
+    const rounded = Math.round(Number(rating) || 0)
+    return '★★★★★'.split('').map((star, idx) => (idx < rounded ? '★' : '☆')).join('')
+}
+
+const useDarkMode = () => {
+    const [isDark, setIsDark] = useState(true);
+
+    useEffect(() => {
+        const storedTheme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const initialDark = storedTheme === 'dark' || (!storedTheme && prefersDark);
+        setIsDark(initialDark);
+    }, []);
+
+    const toggleDark = () => {
+        setIsDark(prev => {
+            const next = !prev;
+            localStorage.setItem('theme', next ? 'dark' : 'light');
+            return next;
+        });
+    };
+
+    return { isDark, toggleDark };
 };
 
 const ProductDetails = () => {
@@ -21,8 +46,23 @@ const ProductDetails = () => {
 
     const { addToCarthandler } = useCart()
     const { currentProduct: product, loading, error } = useSelector((state) => state.product)
+    const authUser = useSelector((state) => state.auth?.user)
+    const {
+        fetchWishlist,
+        addToWishlistHandler,
+        removeFromWishlistHandler,
+        isWishlisted
+    } = UseWishlist()
+    const {
+        reviews,
+        averageRating,
+        totalReviews,
+        fetchReviewsByProductId,
+        submitReviewHandler,
+        deleteReviewHandler,
+        loading: reviewLoading
+    } = UseReview()
 
-    // Debug: log variants structure
     React.useEffect(() => {
         if (product?.variants?.length > 0) {
             console.log('Variants data:', product.variants)
@@ -39,6 +79,17 @@ const ProductDetails = () => {
     const [selectedVariantIndex, setSelectedVariantIndex] = React.useState(null)
     const [cartLoading, setCartLoading] = React.useState(false)
     const [cartMessage, setCartMessage] = React.useState("")
+    const [wishlistLoading, setWishlistLoading] = React.useState(false)
+    const [reviewRating, setReviewRating] = React.useState(5)
+    const [reviewComment, setReviewComment] = React.useState('')
+    const [reviewMessage, setReviewMessage] = React.useState('')
+    const [reviewSubmitting, setReviewSubmitting] = React.useState(false)
+    const [pincode, setPincode] = React.useState('')
+    const [deliveryInfo, setDeliveryInfo] = React.useState(null)
+    const [deliveryLoading, setDeliveryLoading] = React.useState(false)
+    const [deliveryError, setDeliveryError] = React.useState('')
+
+    const { isDark, toggleDark } = useDarkMode()
 
     const getVariantAttr = (variant, key) => {
         const attributes = variant?.attributes
@@ -169,8 +220,100 @@ const ProductDetails = () => {
         }
     }, [productId, handleClearCurrentProduct, handleGetProductById])
 
-    // Removed auto-selection of first variant to show base product by default
-    // Users can manually select variants using color/size filters
+    useEffect(() => {
+        fetchReviewsByProductId(productId).catch(() => { })
+    }, [productId, fetchReviewsByProductId])
+
+    useEffect(() => {
+        if (!token) return
+        fetchWishlist().catch(() => { })
+    }, [token, fetchWishlist])
+
+    useEffect(() => {
+        if (!token || !productId) return
+        addRecentlyViewed(productId).catch(() => { })
+    }, [token, productId])
+
+    const getCurrentUserId = () => {
+        return authUser?.id || authUser?._id || authUser?.user?._id || null
+    }
+
+    const handleWishlistToggle = async () => {
+        if (!token) {
+            navigate('/login', { state: { from: `/product/${productId}` } })
+            return
+        }
+
+        try {
+            setWishlistLoading(true)
+            if (isWishlisted(productId)) {
+                await removeFromWishlistHandler(productId)
+            } else {
+                await addToWishlistHandler(productId)
+            }
+        } catch (error) {
+            console.log(error)
+        } finally {
+            setWishlistLoading(false)
+        }
+    }
+
+    const handleSubmitReview = async (e) => {
+        e.preventDefault()
+        if (!token) {
+            navigate('/login', { state: { from: `/product/${productId}` } })
+            return
+        }
+
+        try {
+            setReviewSubmitting(true)
+            await submitReviewHandler(productId, {
+                rating: reviewRating,
+                comment: reviewComment
+            })
+            setReviewMessage('Review submitted successfully')
+            setReviewComment('')
+        } catch (error) {
+            setReviewMessage(error?.response?.data?.message || 'Failed to submit review')
+        } finally {
+            setReviewSubmitting(false)
+        }
+    }
+
+    const handleDeleteReview = async (reviewId) => {
+        try {
+            await deleteReviewHandler(reviewId)
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    const handleCheckPincode = async () => {
+        if (!pincode) {
+            setDeliveryError('Please enter a pincode')
+            setDeliveryInfo(null)
+            return
+        }
+
+        try {
+            setDeliveryLoading(true)
+            setDeliveryError('')
+            const response = await axios.get(`http://localhost:3000/api/delivery/check/${pincode}`, { withCredentials: true })
+            const data = response?.data
+            const maxDays = Number(String(data?.estimatedDeliveryDays || '').split('-')?.[1]?.replace(' days', '')) || 5
+            const estimatedDate = new Date()
+            estimatedDate.setDate(estimatedDate.getDate() + maxDays)
+            setDeliveryInfo({
+                ...data,
+                estimatedDeliveryDate: estimatedDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+            })
+        } catch (error) {
+            setDeliveryInfo(null)
+            setDeliveryError(error?.response?.data?.message || 'Unable to check delivery for this pincode')
+        } finally {
+            setDeliveryLoading(false)
+        }
+    }
 
     const handleBuy = () => {
         if (!token) {
@@ -191,7 +334,9 @@ const ProductDetails = () => {
     const handleAddToCart = async () => {
         if (displayedStock === 0) {
             setCartMessage("❌ Out of stock!")
+            
             setTimeout(() => setCartMessage(""), 3000)
+
             return
         }
 
@@ -199,33 +344,38 @@ const ProductDetails = () => {
             navigate('/login', { state: { from: `/product/${productId}` } })
             return
         }
+ console.log('variants:', variants)
+    console.log('selectedVariant:', selectedVariant)
+    console.log('selectedVariantIndex:', selectedVariantIndex)
+        if (variants.length > 0 && !selectedVariant) {
+            setCartMessage("❌ Please select a variant first")
+            setTimeout(() => setCartMessage(""), 3000)
+            return
+        }
 
         setCartLoading(true)
         try {
-            // Use first variant as default if no variant selected
-            let variantToUse = selectedVariant
-            if (!variantToUse && variants.length > 0) {
-                variantToUse = variants[0]
+            let variantId = null
+
+            if (variants.length > 0) {
+                variantId = selectedVariant._id
+                console.log('Final variantId sent to API:', variantId)
+            } else {
+                variantId = productId
             }
 
-            if (!variantToUse) {
-                setCartMessage("❌ Please select a variant")
-                setCartLoading(false)
-                setTimeout(() => setCartMessage(""), 3000)
-                return
-            }
-
-            const variantId = variantToUse._id
             const cartData = {
                 quantity: quantity,
                 amount: displayedPrice,
                 currency: displayedCurrency
             }
+            console.log('productId:', productId)  // ADD THIS
+console.log('variantId:', variantId)
             await addToCarthandler(productId, variantId, cartData)
             setCartMessage("✅ Added to cart!")
             setTimeout(() => setCartMessage(""), 3000)
 
-        } catch (error) {
+        } catch {
             setCartMessage("❌ Failed to add to cart")
             setTimeout(() => setCartMessage(""), 3000)
         } finally {
@@ -237,282 +387,452 @@ const ProductDetails = () => {
         handleBuy()
     }
 
+    const themeStyles = isDark ? `
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --text-primary: #ffffff;
+            --text-secondary: #a3a3a3;
+            --accent: #d4af37;
+            --border: #262626;
+            --danger: #ef4444;
+            --success: #10b981;
+        }
+    ` : `
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --text-primary: #000000;
+            --text-secondary: #525252;
+            --accent: #b8860b;
+            --border: #e5e5e5;
+            --danger: #ef4444;
+            --success: #10b981;
+        }
+    `;
+
     if (loading) {
         return (
-            <div className='product-details-root'>
-                <div className='loading-state'>
-                    <div className='loader'></div>
-                    <p>Loading product...</p>
-                </div>
+            <div className="min-h-screen font-outfit flex flex-col items-center justify-center premium-bg premium-text">
+                <style>{`
+                    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap');
+                    ${themeStyles}
+                    .premium-bg { background-color: var(--bg-primary); transition: background-color 0.5s ease; }
+                    .premium-text { color: var(--text-primary); transition: color 0.5s ease; }
+                    .premium-text-muted { color: var(--text-secondary); transition: color 0.5s ease; }
+                    .font-outfit { font-family: 'Outfit', sans-serif; }
+                `}</style>
+                <div className="w-12 h-12 border-2 border-t-transparent border-[var(--text-primary)] rounded-full animate-spin mb-4"></div>
+                <p className="tracking-[0.2em] text-xs font-medium premium-text-muted uppercase">Curating Details...</p>
             </div>
         )
     }
 
     if (error || !product) {
         return (
-            <div className='product-details-root'>
-                <div className='error-state'>
-                    <p>{error || 'Product not found'}</p>
-                    <button onClick={() => navigate('/')} className='back-btn'>Back to Products</button>
-                </div>
+            <div className="min-h-screen font-outfit flex flex-col items-center justify-center gap-8 premium-bg premium-text">
+                <style>{`
+                    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap');
+                    ${themeStyles}
+                    .premium-bg { background-color: var(--bg-primary); transition: background-color 0.5s ease; }
+                    .premium-text { color: var(--text-primary); transition: color 0.5s ease; }
+                    .premium-text-muted { color: var(--text-secondary); transition: color 0.5s ease; }
+                    .font-outfit { font-family: 'Outfit', sans-serif; }
+                    .font-playfair { font-family: 'Playfair Display', serif; }
+                `}</style>
+                <p className="font-playfair text-3xl italic">{error || 'Piece not found'}</p>
+                <button onClick={() => navigate('/')} className="tracking-[0.1em] text-sm uppercase premium-text-muted hover:text-[var(--text-primary)] transition-colors border-b border-transparent hover:border-[var(--text-primary)] pb-1">
+                    Return to Collection
+                </button>
             </div>
         )
     }
 
     return (
-        <div className='product-details-root'>
-            <button onClick={() => navigate('/')} className='product-details-back'>
-                ← Back to Products
-            </button>
+        <div className="min-h-screen font-outfit premium-bg premium-text transition-colors duration-500">
+            <style>{`
+                @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap');
+                
+                ${themeStyles}
 
-            <div className='product-details-container'>
-                {/* Product Image Carousel */}
-                <div className='product-details-image-section'>
-                    {activeImages && activeImages.length > 0 ? (
-                        <div className='image-carousel-wrapper'>
-                            <div className='image-carousel-container'>
-                                <img
-                                    src={activeImages[activeImageIndex].url}
-                                    alt={`${product.title} - Image ${activeImageIndex + 1}`}
-                                    className='product-details-image'
-                                />
+                .premium-bg { background-color: var(--bg-primary); transition: background-color 0.5s ease; }
+                .premium-surface { background-color: var(--bg-secondary); transition: background-color 0.5s ease; }
+                .premium-text { color: var(--text-primary); transition: color 0.5s ease; }
+                .premium-text-muted { color: var(--text-secondary); transition: color 0.5s ease; }
+                .premium-border { border-color: var(--border); transition: border-color 0.5s ease; }
+                
+                .font-outfit { font-family: 'Outfit', sans-serif; }
+                .font-playfair { font-family: 'Playfair Display', serif; }
+                
+                .btn-accent {
+                    background-color: var(--text-primary);
+                    color: var(--bg-primary);
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+                .btn-accent:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+                    background-color: var(--accent);
+                    color: #fff;
+                }
+                
+                .btn-outline {
+                    border: 1px solid var(--border);
+                    color: var(--text-primary);
+                    transition: all 0.3s ease;
+                }
+                .btn-outline:hover {
+                    border-color: var(--text-primary);
+                }
+                
+                .variant-ring.active {
+                    box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--text-primary);
+                }
+                
+                .glass-header {
+                    background: var(--bg-primary);
+                    border-bottom: 1px solid var(--border);
+                }
+                
+                .image-container:hover .image-controls {
+                    opacity: 1;
+                }
+                
+                ::-webkit-scrollbar { width: 4px; }
+                ::-webkit-scrollbar-track { background: var(--bg-primary); }
+                ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+            `}</style>
 
-                                {/* Navigation Buttons */}
-                                {activeImages.length > 1 && (
-                                    <>
-                                        <button
-                                            className='carousel-nav-btn carousel-prev'
-                                            onClick={handlePrevImage}
-                                            aria-label='Previous image'
-                                        >
-                                            ‹
-                                        </button>
-                                        <button
-                                            className='carousel-nav-btn carousel-next'
-                                            onClick={handleNextImage}
-                                            aria-label='Next image'
-                                        >
-                                            ›
-                                        </button>
-
-                                        <div className='image-counter'>
-                                            {activeImageIndex + 1} / {activeImages.length}
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-
-                            {/* Thumbnail Images */}
-                            {activeImages.length > 1 && (
-                                <div className='image-thumbnails'>
-                                    {activeImages.map((img, idx) => (
-                                        <button
-                                            key={img.url + idx}
-                                            type="button"
-                                            className={`thumbnail ${idx === activeImageIndex ? 'active' : ''}`}
-                                            onClick={() => {
-                                                if (selectedVariantIndex !== null) {
-                                                    setVariantImageIndex(prev => ({ ...prev, [selectedVariantIndex]: idx }))
-                                                    return
-                                                }
-                                                setCurrentImageIndex(idx)
-                                            }}
-                                            aria-label={`View image ${idx + 1}`}
-                                        >
-                                            <img src={img.url} alt={`${product.title} thumbnail ${idx + 1}`} />
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    ) : (
-                        <div className='product-details-image-placeholder'>
-                            No Image
-                        </div>
-                    )}
+            <header className="sticky top-0 z-40 glass-header flex items-center justify-between px-4 py-3 sm:px-12 sm:py-5">
+                <button
+                    onClick={() => navigate(-1)}
+                    className="shrink-0 text-xs uppercase tracking-[0.15em] whitespace-nowrap premium-text-muted hover:text-[var(--text-primary)] transition-colors text-left"
+                >
+                    Back
+                </button>
+                <div className="flex-1 text-center">
+                    <span className="font-playfair whitespace-nowrap text-sm sm:text-2xl tracking-widest cursor-pointer font-semibold" onClick={() => navigate('/')}>
+                        S N I T C H
+                    </span>
                 </div>
+                <div className="shrink-0 text-right">
+                    <button
+                        onClick={toggleDark}
+                        className="shrink-0 text-xs uppercase tracking-[0.1em] whitespace-nowrap premium-text-muted hover:text-[var(--text-primary)] transition-colors"
+                    >
+                        {isDark ? 'Light' : 'Dark'}
+                    </button>
+                </div>
+            </header>
 
-                {/* Product Info */}
-                <div className='product-details-info'>
-                    <h1 className='product-details-title'>{product.title}</h1>
-
-                    <div className='product-details-price-section'>
-                        <span className='product-details-price'>₹{displayedPrice}</span>
-                        {displayedCurrency && (
-                            <span className='product-details-currency'>{displayedCurrency}</span>
-                        )}
-                    </div>
-
-                    <div className='product-details-divider'></div>
-
-                    <div className='product-details-description-section'>
-                        <h3>Description</h3>
-                        <p>{product.description}</p>
-                    </div>
-
-                    {/* Product Details */}
-                    <div className='product-details-specs'>
-                        {product.category && (
-                            <div className='spec-row'>
-                                <span className='spec-label'>Category:</span>
-                                <span className='spec-value'>{product.category}</span>
-                            </div>
-                        )}
-
-                        {product.createdAt && (
-                            <div className='spec-row'>
-                                <span className='spec-label'>Listed:</span>
-                                <span className='spec-value'>{new Date(product.createdAt).toLocaleDateString()}</span>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className='product-details-divider'></div>
-
-                    {variants.length > 0 && (
-                        <div className="pd-options">
-                            {availableColors.length > 0 && (
-                                <div className="pd-option-group">
-                                    <div className="pd-option-label">COLOR</div>
-                                    <div className="pd-option-buttons">
-                                        {availableColors.map((c) => (
-                                            <button
-                                                key={c}
-                                                type="button"
-                                                className={`pd-option-btn ${selectedColor === c ? 'pd-option-btn-active' : ''}`}
-                                                onClick={() => handleSelectColor(c)}
-                                            >
-                                                {String(c).toUpperCase()}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {availableSizes.length > 0 && (
-                                <div className="pd-option-group">
-                                    <div className="pd-option-label">SIZE</div>
-                                    <div className="pd-option-buttons">
-                                        {availableSizes.map((s) => (
-                                            <button
-                                                key={s}
-                                                type="button"
-                                                className={`pd-option-btn ${selectedSize === s ? 'pd-option-btn-active' : ''}`}
-                                                onClick={() => handleSelectSize(s)}
-                                            >
-                                                {String(s).toUpperCase()}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-
-                        </div>
-                    )}
-
-                    {variants.length > 0 && availableColors.length === 0 && availableSizes.length === 0 && (
-                        <div className="pd-variants-fallback">
-                            <div className="pd-variant-label">CHOOSE YOUR VARIANT</div>
-                            <div className="pd-variant-thumbnails">
-                                {variants.map((variant, idx) => (
+            <main className="mx-auto max-w-[1400px] px-6 py-12 lg:py-24">
+                <div className="flex flex-col lg:flex-row gap-16 lg:gap-24">
+                    <div className="flex-1 flex gap-6 lg:gap-8 lg:sticky lg:top-32 h-fit">
+                        {activeImages && activeImages.length > 1 && (
+                            <div className="hidden lg:flex flex-col gap-4 w-20 shrink-0">
+                                {activeImages.map((img, idx) => (
                                     <button
                                         key={idx}
-                                        type="button"
-                                        className={`pd-variant-thumb ${selectedVariantIndex === idx ? 'pd-variant-thumb-active' : ''}`}
+                                        className={`w-full aspect-[3/4] relative overflow-hidden transition-all duration-300 rounded-[10px] ${idx === activeImageIndex ? 'opacity-100 ring-1 ring-[var(--text-primary)] ring-offset-2 ring-offset-[var(--bg-primary)]' : 'opacity-40 hover:opacity-100'}`}
                                         onClick={() => {
-                                            setSelectedVariantIndex(idx)
-                                            setVariantImageIndex(prev => ({ ...prev, [idx]: 0 }))
+                                            if (selectedVariantIndex !== null) {
+                                                setVariantImageIndex(prev => ({ ...prev, [selectedVariantIndex]: idx }))
+                                            } else {
+                                                setCurrentImageIndex(idx)
+                                            }
                                         }}
-                                        title={`Variant ${idx + 1}`}
                                     >
-                                        {variant.images && variant.images.length > 0 ? (
-                                            <>
-                                                <img src={variant.images[0].url} alt={`Variant ${idx + 1}`} />
-                                                <div className="pd-variant-badge">{idx + 1}</div>
-                                            </>
-                                        ) : (
-                                            <div className="pd-variant-thumb-placeholder">V{idx + 1}</div>
-                                        )}
+                                        <img src={img.url} alt="thumbnail" className="w-full h-full object-cover rounded-[10px]" />
                                     </button>
                                 ))}
                             </div>
-                            {displayedStock !== undefined && (
-                                <div className="pd-stock-row">
-                                    <span className="pd-stock-label">{displayedStock > 0 ? 'IN STOCK' : 'OUT OF STOCK'}</span>
-                                    {displayedStock > 0 && (
-                                        <span className="pd-stock-value">{displayedStock} available</span>
+                        )}
+
+                        <div className="flex-1 relative aspect-[3/4] image-container overflow-hidden premium-surface rounded-[10px]">
+                            {activeImages && activeImages.length > 0 ? (
+                                <>
+                                    <img
+                                        src={activeImages[activeImageIndex].url}
+                                        alt={product.title}
+                                        className="w-full h-full object-cover rounded-[10px]"
+                                    />
+                                    {activeImages.length > 1 && (
+                                        <div className="image-controls opacity-0 transition-opacity duration-300 absolute inset-0 flex items-center justify-between p-4">
+                                            <button onClick={handlePrevImage} className="w-10 h-10 rounded-full bg-[var(--bg-primary)]/80 backdrop-blur flex items-center justify-center hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] transition-all">
+                                                ←
+                                            </button>
+                                            <button onClick={handleNextImage} className="w-10 h-10 rounded-full bg-[var(--bg-primary)]/80 backdrop-blur flex items-center justify-center hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] transition-all">
+                                                →
+                                            </button>
+                                        </div>
                                     )}
-                                </div>
+                                    {activeImages.length > 1 && (
+                                        <div className="lg:hidden absolute bottom-4 left-0 right-0 flex justify-center gap-2">
+                                            {activeImages.map((_, idx) => (
+                                                <div key={idx} className={`h-1 rounded-full transition-all ${idx === activeImageIndex ? 'w-6 bg-[var(--text-primary)]' : 'w-2 bg-[var(--text-primary)]/40'}`} />
+                                            ))}
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center text-xs uppercase tracking-widest premium-text-muted">No Media Available</div>
                             )}
                         </div>
-                    )}
+                    </div>
 
-                    <div className='product-details-divider'></div>
-                    <div className='product-details-buy-section'>
-                        <div className='quantity-control'>
-                            <label>Quantity:</label>
-                            <input
-                                type='number'
-                                min='1'
-                                value={quantity}
-                                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                                className='quantity-input'
-                            />
+                    <div className="flex-1 flex flex-col max-w-xl">
+                        <div className="mb-8">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <p className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-4">{product.category || 'Collection'}</p>
+                                    <h1 className="font-playfair text-4xl sm:text-5xl lg:text-6xl font-medium leading-tight mb-4">{product.title}</h1>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={handleWishlistToggle}
+                                    disabled={wishlistLoading}
+                                    className="text-2xl mt-2 hover:scale-110 transition-transform disabled:opacity-50"
+                                >
+                                    {isWishlisted(productId) ? '♥' : '♡'}
+                                </button>
+                            </div>
+                            <div className="flex items-baseline gap-3">
+                                <span className="text-2xl font-light">{displayedCurrency === 'INR' ? '₹' : displayedCurrency}{displayedPrice}</span>
+                                <span className="text-xs uppercase tracking-widest premium-text-muted">Taxes Included</span>
+                            </div>
                         </div>
 
-                        <div className='pd-buy-actions'>
+                        <div className="h-px w-full premium-border border-t mb-8" />
+
+                        <div className="text-sm leading-relaxed premium-text-muted mb-10 font-light">
+                            {product.description}
+                        </div>
+
+                        {variants.length > 0 && (
+                            <div className="flex flex-col gap-8 mb-10">
+                                {availableColors.length > 0 && (
+                                    <div>
+                                        <div className="flex justify-between mb-4">
+                                            <p className="text-[10px] uppercase tracking-[0.15em] premium-text-muted">Color</p>
+                                            <span className="text-[10px] uppercase tracking-[0.1em]">{selectedColor}</span>
+                                        </div>
+                                        <div className="flex flex-wrap gap-3">
+                                            {availableColors.map((c) => (
+                                                <button
+                                                    key={c}
+                                                    onClick={() => handleSelectColor(c)}
+                                                    className={`px-6 py-3 text-xs uppercase tracking-wider transition-all border ${selectedColor === c ? 'border-[var(--text-primary)] premium-text bg-[var(--text-primary)]/5' : 'border-[var(--border)] premium-text-muted hover:border-[var(--text-primary)]'}`}
+                                                >
+                                                    {String(c)}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {availableSizes.length > 0 && (
+                                    <div>
+                                        <div className="flex justify-between mb-4">
+                                            <p className="text-[10px] uppercase tracking-[0.15em] premium-text-muted">Size</p>
+                                            <button className="text-[10px] uppercase tracking-[0.1em] underline underline-offset-4 premium-text-muted hover:text-[var(--text-primary)]">Size Guide</button>
+                                        </div>
+                                        <div className="flex flex-wrap gap-3">
+                                            {availableSizes.map((s) => (
+                                                <button
+                                                    key={s}
+                                                    onClick={() => handleSelectSize(s)}
+                                                    className={`w-14 h-14 flex items-center justify-center text-xs uppercase transition-all border ${selectedSize === s ? 'border-[var(--text-primary)] premium-text bg-[var(--text-primary)]/5' : 'border-[var(--border)] premium-text-muted hover:border-[var(--text-primary)]'}`}
+                                                >
+                                                    {String(s)}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {availableColors.length === 0 && availableSizes.length === 0 && (
+                                    <div>
+                                        <p className="text-[10px] uppercase tracking-[0.15em] premium-text-muted mb-4">Select Style</p>
+                                        <div className="flex flex-wrap gap-4">
+                                            {variants.map((v, idx) => (
+                                                <button
+                                                    key={idx}
+                                                    onClick={() => {
+                                                        setSelectedVariantIndex(idx);
+                                                        setVariantImageIndex(prev => ({ ...prev, [idx]: 0 }));
+                                                    }}
+                                                    className={`w-16 h-20 overflow-hidden transition-all variant-ring rounded-[10px] ${selectedVariantIndex === idx ? 'active' : 'opacity-60 hover:opacity-100'}`}
+                                                >
+                                                    {v.images?.length > 0 ? (
+                                                        <img src={v.images[0].url} alt={`V${idx}`} className="w-full h-full object-cover rounded-[10px]" />
+                                                    ) : (
+                                                        <div className="w-full h-full premium-surface flex items-center justify-center text-[10px]">V{idx + 1}</div>
+                                                    )}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        <div className="flex items-center justify-between mb-10">
+                            <div className="flex items-center border border-[var(--border)] px-2">
+                                <button className="px-4 py-3 premium-text-muted hover:text-[var(--text-primary)] transition-colors" onClick={() => setQuantity(Math.max(1, quantity - 1))}>−</button>
+                                <span className="w-8 text-center text-sm font-medium">{quantity}</span>
+                                <button className="px-4 py-3 premium-text-muted hover:text-[var(--text-primary)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed" onClick={() => setQuantity(Math.min(displayedStock || 99, quantity + 1))} disabled={quantity >= (displayedStock || 99)}>+</button>
+                            </div>
+
+                            {displayedStock !== undefined && (
+                                <span className={`text-[10px] uppercase tracking-[0.15em] ${displayedStock === 0 ? 'text-[var(--danger)]' : displayedStock <= 3 ? 'text-[var(--accent)]' : 'text-[var(--success)]'}`}>
+                                    {displayedStock === 0 ? 'Out of Stock' : displayedStock <= 3 ? `Only ${displayedStock} Left` : `${displayedStock} In Stock`}
+                                </span>
+                            )}
+                        </div>
+
+                        <div className="flex flex-col gap-4 mt-auto">
                             <button
-                                className='pd-add-to-cart-btn'
                                 onClick={handleAddToCart}
                                 disabled={displayedStock === 0 || cartLoading}
+                                className="btn-accent w-full py-5 text-xs uppercase tracking-[0.2em] font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                {cartLoading ? 'Adding...' : 'ADD TO CART'}
+                                {cartLoading ? 'Processing...' : 'Add to Bag'}
                             </button>
                             <button
-                                className='pd-buy-now-btn'
                                 onClick={handleBuyNow}
                                 disabled={displayedStock === 0}
+                                className="btn-outline w-full py-5 text-xs uppercase tracking-[0.2em] font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                {token ? 'BUY NOW' : 'LOGIN TO BUY'}
+                                {token ? 'Purchase Now' : 'Login to Purchase'}
                             </button>
                         </div>
 
                         {cartMessage && (
-                            <p style={{
-                                textAlign: 'center',
-                                padding: '0.75rem',
-                                marginTop: '1rem',
-                                borderRadius: '6px',
-                                backgroundColor: cartMessage.includes('✅') ? '#d1fae5' : '#fee2e2',
-                                color: cartMessage.includes('✅') ? '#059669' : '#dc2626',
-                                fontSize: '0.875rem',
-                                fontWeight: '500'
-                            }}>
-                                {cartMessage}
-                            </p>
+                            <div className={`mt-6 py-4 text-center text-xs tracking-widest uppercase border ${cartMessage.includes('✅') ? 'border-[var(--success)] text-[var(--success)]' : 'border-[var(--danger)] text-[var(--danger)]'}`}>
+                                {cartMessage.replace('✅', '').replace('❌', '').trim()}
+                            </div>
                         )}
 
                         {!token && (
-                            <p className='login-hint'>Please login to make a purchase</p>
+                            <p className="mt-6 text-center text-[10px] uppercase tracking-widest premium-text-muted">Account required for purchase</p>
                         )}
+
+                        <div className="mt-12 pt-8 border-t border-[var(--border)]">
+                            <p className="text-[10px] uppercase tracking-[0.15em] premium-text-muted mb-4">Shipping & Returns</p>
+                            <div className="flex flex-col sm:flex-row gap-0 border border-[var(--border)] p-1">
+                                <input
+                                    type="text"
+                                    value={pincode}
+                                    onChange={(e) => setPincode(e.target.value)}
+                                    placeholder="Enter Postal Code"
+                                    className="flex-1 bg-transparent px-4 py-3 text-sm focus:outline-none placeholder:text-[var(--text-secondary)]"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleCheckPincode}
+                                    disabled={deliveryLoading}
+                                    className="px-6 py-3 text-[10px] uppercase tracking-widest bg-[var(--bg-secondary)] hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] transition-colors"
+                                >
+                                    {deliveryLoading ? 'Checking...' : 'Check'}
+                                </button>
+                            </div>
+                            {deliveryError && <p className="mt-3 text-[10px] uppercase tracking-wider text-[var(--danger)]">{deliveryError}</p>}
+                            {deliveryInfo && (
+                                <p className="mt-3 text-[10px] uppercase tracking-wider text-[var(--success)]">
+                                    {deliveryInfo?.message} • By {deliveryInfo?.estimatedDeliveryDate}
+                                </p>
+                            )}
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <style>{`   
-                @keyframes fadeInUp {
-                    from {
-                        opacity: 0;
-                        transform: translateY(30px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
-                }
-            `}</style>
-        </div >
+                <section className="mt-32 pt-16 border-t border-[var(--border)]">
+                    <div className="flex flex-col lg:flex-row gap-16">
+                        <div className="w-full lg:w-1/3">
+                            <h2 className="font-playfair text-3xl mb-2">Reflections</h2>
+                            <p className="text-xs uppercase tracking-widest premium-text-muted mb-8">Client Experiences</p>
+
+                            <div className="flex items-end gap-4 mb-10">
+                                <span className="font-playfair text-6xl">{Number(averageRating || 0).toFixed(1)}</span>
+                                <div className="pb-2">
+                                    <p className="text-lg tracking-[0.2em] text-[var(--accent)]">{renderStars(averageRating)}</p>
+                                    <p className="text-[10px] uppercase tracking-widest premium-text-muted mt-1">Based on {totalReviews || 0} reviews</p>
+                                </div>
+                            </div>
+
+                            <form onSubmit={handleSubmitReview} className="premium-surface p-8">
+                                <p className="text-xs uppercase tracking-widest mb-6">Leave a reflection</p>
+                                <div className="flex gap-2 mb-6">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <button
+                                            key={star}
+                                            type="button"
+                                            onClick={() => setReviewRating(star)}
+                                            className={`text-xl transition-colors ${reviewRating >= star ? 'text-[var(--text-primary)]' : 'text-[var(--border)]'}`}
+                                        >
+                                            ★
+                                        </button>
+                                    ))}
+                                </div>
+                                <textarea
+                                    value={reviewComment}
+                                    onChange={(e) => setReviewComment(e.target.value)}
+                                    placeholder="Detail your experience..."
+                                    className="w-full bg-transparent border-b border-[var(--border)] focus:border-[var(--text-primary)] transition-colors py-3 min-h-[100px] text-sm focus:outline-none resize-none mb-6 placeholder:text-[var(--text-secondary)]"
+                                />
+                                <button
+                                    type="submit"
+                                    disabled={reviewSubmitting}
+                                    className="btn-accent w-full py-4 text-[10px] uppercase tracking-[0.2em]"
+                                >
+                                    {reviewSubmitting ? 'Submitting...' : 'Submit Reflection'}
+                                </button>
+                                {reviewMessage && <p className="mt-4 text-[10px] uppercase tracking-wider text-center">{reviewMessage}</p>}
+                            </form>
+                        </div>
+
+                        <div className="w-full lg:w-2/3">
+                            {reviewLoading ? (
+                                <div className="py-12 flex justify-center">
+                                    <div className="w-8 h-8 border border-t-transparent border-[var(--text-primary)] rounded-full animate-spin"></div>
+                                </div>
+                            ) : reviews?.length > 0 ? (
+                                <div className="grid gap-8 sm:grid-cols-2">
+                                    {reviews.map((review) => {
+                                        const currentUserId = getCurrentUserId()
+                                        const reviewUserId = review?.user?._id
+                                        const canDelete = token && currentUserId && reviewUserId && String(currentUserId) === String(reviewUserId)
+
+                                        return (
+                                            <div key={review?._id} className="p-8 border border-[var(--border)]">
+                                                <div className="flex justify-between items-start mb-4">
+                                                    <p className="text-sm font-medium tracking-wide">{review?.user?.fullname || 'Anonymous'}</p>
+                                                    <p className="text-sm text-[var(--accent)] tracking-[0.1em]">{renderStars(review?.rating)}</p>
+                                                </div>
+                                                <p className="text-sm font-light leading-relaxed premium-text-muted mb-4">"{review?.comment || 'No comment provided.'}"</p>
+                                                {canDelete && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDeleteReview(review?._id)}
+                                                        className="text-[10px] uppercase tracking-widest text-[var(--danger)] hover:underline underline-offset-4"
+                                                    >
+                                                        Remove
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            ) : (
+                                <div className="h-full flex items-center justify-center border border-[var(--border)] p-12">
+                                    <p className="text-xs uppercase tracking-widest premium-text-muted">No reflections yet.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
     )
 }
 

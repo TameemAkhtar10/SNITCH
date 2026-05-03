@@ -1,4 +1,4 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 
 const getToken = () => {
@@ -10,6 +10,7 @@ const SellerRoute = ({ children }) => {
     const token = getToken();
     const user = useSelector((state) => state.auth.user);
     const initializing = useSelector((state) => state.auth.initializing);
+    const location = useLocation();
 
     // If still initializing, show loading - don't redirect yet
     if (initializing) {
@@ -18,7 +19,7 @@ const SellerRoute = ({ children }) => {
 
     // Check if user has token
     if (!token) {
-        return <Navigate to="/login" replace />;
+        return <Navigate to="/login" replace state={{ from: location }} />;
     }
 
 

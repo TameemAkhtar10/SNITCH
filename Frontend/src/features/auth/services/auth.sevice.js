@@ -34,3 +34,13 @@ export const getme = async () => {
         throw error  // Throw error so caller knows request failed
     }
 }
+
+export const logout = async () => {
+    try {
+        const response = await api.post('/logout')
+        return response.data
+    } catch (error) {
+        console.log("Logout error:", error)
+        throw error
+    }
+}

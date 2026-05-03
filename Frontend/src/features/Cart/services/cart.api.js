@@ -28,6 +28,18 @@ export const removeItem = async (cartItemId) => {
     }
 }
 
+export const updateItem = async (cartItemId, quantity) => {
+    try {
+        const response = await api.put(`/update/${cartItemId}`, {
+            quantity,
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error updating item in cart:', error);
+        throw error;
+    }
+}
+
 export const getCart = async () => {
     try {
         const response = await api.get('/');

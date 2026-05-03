@@ -13,7 +13,7 @@ export const addVariant = async (req, res) => {
         const { productId } = req.params;
         const { stock, priceAmount, priceCurrency = 'INR' } = req.body;
         const sellerId = req.user._id;
-        if (!stock || !priceAmount) {
+        if (stock === undefined || stock === null || stock === '' || priceAmount === undefined || priceAmount === null || priceAmount === '') {
             return res.status(400).json({
                 message: 'Stock and price are required',
                 success: false,
@@ -66,6 +66,7 @@ export const addVariant = async (req, res) => {
             message: 'Variant added successfully',
             success: true,
             variant: newVariant,
+            data: { variant: newVariant },
         });
     } catch (error) {
         console.error(error);
@@ -147,8 +148,8 @@ export const updateVariant = async (req, res) => {
                 }
             }
         }
-        if (stock) product.variants[variantIndex].stock = parseInt(stock);
-        if (priceAmount) product.variants[variantIndex].price.amount = parseFloat(priceAmount);
+        if (stock !== undefined && stock !== '') product.variants[variantIndex].stock = parseInt(stock, 10);
+        if (priceAmount !== undefined && priceAmount !== '') product.variants[variantIndex].price.amount = parseFloat(priceAmount);
         if (priceCurrency) product.variants[variantIndex].price.currency = priceCurrency;
         if (uploadedImages.length > 0) {
             product.variants[variantIndex].images = uploadedImages;
@@ -160,6 +161,7 @@ export const updateVariant = async (req, res) => {
             message: 'Variant updated successfully',
             success: true,
             variant: product.variants[variantIndex],
+            data: { variant: product.variants[variantIndex] },
         });
     } catch (error) {
         console.error(error);

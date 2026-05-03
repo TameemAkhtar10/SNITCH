@@ -3,13 +3,14 @@ import { body, validationResult } from 'express-validator'
 function validateRequest(req, res, next) {
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() })
+        return res.status(400).json({ success: false, message: 'Validation failed', data: { errors: errors.array() } })
     }
     next()
 }
 
 export const validateRegister = [
     body('email')
+        .notEmpty().withMessage('Email is required')
         .trim()
         .isEmail()
         .withMessage('Invalid email format'),
@@ -29,15 +30,16 @@ export const validateRegister = [
         .notEmpty().withMessage('Fullname is required')
         .isLength({ min: 3 }).withMessage('Fullname must be at least 3 characters long'),
     body('isSeller')
-        .trim()
-        .notEmpty().withMessage('isSeller is required')
-        .isBoolean().withMessage('isSeller must be a boolean'),
+        .optional()
+        .isBoolean().withMessage('isSeller must be a boolean')
+        .toBoolean(),
 
     validateRequest
 ]
 
-export  const validateLogin = [
+export const validateLogin = [
     body('email')
+        .notEmpty().withMessage('Email is required')
         .trim()
         .isEmail()
         .withMessage('Invalid email format'),

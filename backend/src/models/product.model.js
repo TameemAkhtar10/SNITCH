@@ -15,6 +15,14 @@ const productSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
+    averageRating: {
+        type: Number,
+        default: 0
+    },
+    totalReviews: {
+        type: Number,
+        default: 0
+    },
     price: {
         amount: {
             type: Number,
@@ -25,6 +33,10 @@ const productSchema = new mongoose.Schema({
             enum: ["USD", "EUR", "GBP", "JPY", "INR"],
             default: "INR"
         }
+    },
+    stock: {
+        type: Number,
+        default: 0
     },
     images: [
         {

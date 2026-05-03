@@ -10,6 +10,10 @@ import routes from '../src/routes/auth.routes.js'
 import productRoutes from '../src/routes/product.route.js'
 import variantRoutes from '../src/routes/variant.routes.js'
 import cartRoutes from '../src/routes/cart.routes.js'
+import wishlistRoutes from '../src/routes/wishlist.routes.js'
+import reviewsRoutes from '../src/routes/reviews.routes.js'
+import deliveryRoutes from '../src/routes/delivery.routes.js'
+import userRoutes from '../src/routes/user.routes.js'
 
 
 const app = express();
@@ -35,4 +39,8 @@ app.use('/api/auth', routes)
 app.use('/api/product', productRoutes)
 app.use('/api/products', variantRoutes)
 app.use('/api/cart', cartRoutes)
+app.use('/api/wishlist', wishlistRoutes)
+app.use('/api/reviews', reviewsRoutes)
+app.use('/api/delivery', deliveryRoutes)
+app.use('/api/user', userRoutes)
 export default app; 

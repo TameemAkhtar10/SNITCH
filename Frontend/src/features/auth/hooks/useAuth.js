@@ -1,7 +1,8 @@
 import { seterror, setloading, setuser, logout } from "../state/auth.slice";
-import { register, getme } from "../services/auth.sevice";
+import { register, getme, login, logout as logoutRequest } from "../services/auth.sevice";
 import { useDispatch } from 'react-redux'
-import { login } from "../services/auth.sevice";
+import { clearCart } from '../../Cart/State/cart.slice';
+import { clearWishlist } from '../../Wishlist/State/wishlist.slice';
 
 export const useAuth = () => {
     const dispatch = useDispatch()
@@ -10,8 +11,7 @@ export const useAuth = () => {
         try {
             dispatch(setloading(true));
             const response = await register({ email, password, contact, fullname, isSeller });
-            // Token is set by backend in httpOnly cookies, no need to set here
-            dispatch(setuser(response));
+            dispatch(setuser(response?.user || response?.data?.user || response));
             dispatch(setloading(false));
             return response;
         } catch (error) {
@@ -25,8 +25,7 @@ export const useAuth = () => {
         try {
             dispatch(setloading(true));
             const response = await login({ email, password });
-            // Token is set by backend in httpOnly cookies, no need to set here
-            dispatch(setuser(response));
+            dispatch(setuser(response?.user || response?.data?.user || response));
             dispatch(setloading(false));
             return response;
         } catch (error) {
@@ -39,9 +38,12 @@ export const useAuth = () => {
     const handlerLogout = async () => {
         try {
             dispatch(setloading(true));
-            // Call backend logout if needed
+            await logoutRequest();
             dispatch(logout());
+            dispatch(clearCart());
+            dispatch(clearWishlist());
             dispatch(setloading(false));
+            return true;
         } catch (error) {
             dispatch(seterror(error?.response?.data?.message));
             dispatch(setloading(false));
@@ -53,11 +55,11 @@ export const useAuth = () => {
         try {
             dispatch(setloading(true));
             const response = await getme();
-            dispatch(setuser(response));
+            dispatch(setuser(response?.user || response?.data?.user || response));
             dispatch(setloading(false));
             return response;
         } catch (error) {
-            dispatch(seterror(error?.response?.data?.message));
+            dispatch(logout());
             dispatch(setloading(false));
             throw error;
         }

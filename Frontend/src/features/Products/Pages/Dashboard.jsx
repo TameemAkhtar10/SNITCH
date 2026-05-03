@@ -2,16 +2,37 @@ import { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import UseProduct from "../Hooks/UseProduct.js";
-import "./Dashboard.css";
+
+const useDarkMode = () => {
+    const [isDark, setIsDark] = useState(true);
+
+    useEffect(() => {
+        const storedTheme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const initialDark = storedTheme === 'dark' || (!storedTheme && prefersDark);
+        setIsDark(initialDark);
+    }, []);
+
+    const toggleDark = () => {
+        setIsDark(prev => {
+            const next = !prev;
+            localStorage.setItem('theme', next ? 'dark' : 'light');
+            return next;
+        });
+    };
+
+    return { isDark, toggleDark };
+};
 
 const Dashboard = () => {
     const { handleGetSellerProducts } = UseProduct();
     const navigate = useNavigate();
     const sellerProducts = useSelector((state) => state.product.sellerProducts);
-    console.log("Seller Products:", sellerProducts);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [filter, setFilter] = useState("all");
+
+    const { isDark, toggleDark } = useDarkMode();
 
     useEffect(() => {
         fetchProducts();
@@ -40,205 +61,219 @@ const Dashboard = () => {
 
     const filteredProducts = filter === "all" ? sellerProducts : sellerProducts;
 
+    const themeStyles = isDark ? `
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --text-primary: #ffffff;
+            --text-secondary: #a3a3a3;
+            --accent: #d4af37;
+            --border: #262626;
+            --danger: #ef4444;
+            --success: #10b981;
+        }
+    ` : `
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --text-primary: #000000;
+            --text-secondary: #525252;
+            --accent: #b8860b;
+            --border: #e5e5e5;
+            --danger: #ef4444;
+            --success: #10b981;
+        }
+    `;
+
     return (
-        <section className="dashboard-root">
-            <div className="dashboard-header">
-                <div className="dashboard-header-content">
-                    <div>
-                        <p className="dashboard-overline">Your Store</p>
-                        <h1 className="dashboard-title">Manage Products</h1>
-                        <p className="dashboard-subtitle">
-                            {sellerProducts?.length || 0} products listed
-                        </p>
-                    </div>
+        <div className="min-h-screen font-outfit premium-bg premium-text transition-colors duration-500">
+            <style>{`
+                @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap');
+                
+                ${themeStyles}
+
+                .premium-bg { background-color: var(--bg-primary); transition: background-color 0.5s ease; }
+                .premium-surface { background-color: var(--bg-secondary); transition: background-color 0.5s ease; }
+                .premium-text { color: var(--text-primary); transition: color 0.5s ease; }
+                .premium-text-muted { color: var(--text-secondary); transition: color 0.5s ease; }
+                .premium-border { border-color: var(--border); transition: border-color 0.5s ease; }
+                
+                .font-outfit { font-family: 'Outfit', sans-serif; }
+                .font-playfair { font-family: 'Playfair Display', serif; }
+                
+                .btn-accent {
+                    background-color: var(--text-primary);
+                    color: var(--bg-primary);
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+                .btn-accent:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+                    background-color: var(--accent);
+                    color: #fff;
+                }
+
+                .glass-header {
+                    background: var(--bg-primary);
+                    border-bottom: 1px solid var(--border);
+                }
+
+                ::-webkit-scrollbar { width: 4px; }
+                ::-webkit-scrollbar-track { background: var(--bg-primary); }
+                ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+            `}</style>
+
+            <header className="sticky top-0 z-40 glass-header flex items-center justify-between px-4 py-3 sm:px-12 sm:py-5">
+                <button
+                    onClick={() => navigate('/')}
+                    className="shrink-0 text-xs uppercase tracking-[0.15em] whitespace-nowrap premium-text-muted hover:text-[var(--text-primary)] transition-colors text-left"
+                >
+                    Return
+                </button>
+                <div className="flex-1 text-center">
+                    <span className="font-playfair whitespace-nowrap text-sm sm:text-2xl tracking-widest cursor-pointer font-semibold" onClick={() => navigate('/')}>
+                        S N I T C H
+                    </span>
+                </div>
+                <div className="shrink-0 flex justify-end items-center gap-6">
                     <button
-                        className="dashboard-create-btn"
-                        onClick={() => navigate("/seller/create-product")}
+                        onClick={toggleDark}
+                        className="shrink-0 text-xs uppercase tracking-[0.1em] whitespace-nowrap premium-text-muted hover:text-[var(--text-primary)] transition-colors"
                     >
-                        <span className="btn-icon">+</span>
-                        <span>Add New Product</span>
+                        {isDark ? 'Light' : 'Dark'}
+                    </button>
+                    <button
+                        onClick={() => navigate("/seller/create-product")}
+                        className="shrink-0 text-xs uppercase tracking-widest whitespace-nowrap text-[var(--accent)] hover:text-[var(--text-primary)] transition-colors"
+                    >
+                        [+ Add]
                     </button>
                 </div>
-            </div>
+            </header>
 
-            <div className="dashboard-container">
-                <div className="dashboard-filter">
-                    <div className="filter-group">
-                        <button
-                            className={`filter-btn ${filter === "all" ? "active" : ""}`}
-                            onClick={() => setFilter("all")}
-                        >
-                            All Products
-                        </button>
-                        <button
-                            className={`filter-btn ${filter === "active" ? "active" : ""}`}
-                            onClick={() => setFilter("active")}
-                        >
-                            Active
-                        </button>
-                        <button
-                            className={`filter-btn ${filter === "inactive" ? "active" : ""}`}
-                            onClick={() => setFilter("inactive")}
-                        >
-                            Inactive
-                        </button>
+            <main className="mx-auto max-w-[1600px] px-6 sm:px-12 py-16 lg:py-24">
+                <div className="mb-16">
+                    <p className="text-[10px] uppercase tracking-[0.3em] premium-text-muted mb-4">Store Management</p>
+                    <h1 className="font-playfair text-5xl lg:text-6xl font-medium leading-tight mb-4">
+                        Curator Dashboard
+                    </h1>
+                    <p className="text-sm font-light premium-text-muted">{sellerProducts?.length || 0} pieces in collection</p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-16 border-b border-[var(--border)] pb-8">
+                    <div className="flex gap-8">
+                        {['all', 'active', 'inactive'].map((f) => (
+                            <button
+                                key={f}
+                                onClick={() => setFilter(f)}
+                                className={`text-[10px] uppercase tracking-[0.2em] transition-all pb-1 border-b ${filter === f ? 'border-[var(--text-primary)] premium-text' : 'border-transparent premium-text-muted hover:text-[var(--text-primary)]'}`}
+                            >
+                                {f}
+                            </button>
+                        ))}
                     </div>
                     <button
-                        className="filter-refresh"
                         onClick={fetchProducts}
                         disabled={loading}
+                        className="text-[10px] uppercase tracking-widest premium-text-muted hover:text-[var(--text-primary)] transition-colors underline underline-offset-4"
                     >
-                        {loading ? "Loading..." : "Refresh"}
+                        {loading ? "Syncing..." : "Sync Collection"}
                     </button>
                 </div>
 
                 {error && (
-                    <div className="dashboard-error">
-                        <p>{error}</p>
-                        <button onClick={fetchProducts}>Retry</button>
+                    <div className="mb-8 p-6 text-xs uppercase tracking-widest flex justify-between items-center border border-[var(--danger)] text-[var(--danger)]">
+                        <span>{error}</span>
+                        <button onClick={fetchProducts} className="underline underline-offset-4 font-bold">Retry</button>
                     </div>
                 )}
 
-
                 {loading ? (
-                    <div className="dashboard-loading">
-                        <div className="loader"></div>
-                        <p>Loading your products...</p>
+                    <div className="flex flex-col items-center justify-center py-32">
+                        <div className="w-12 h-12 border-2 border-t-transparent border-[var(--text-primary)] rounded-full animate-spin mb-4"></div>
+                        <p className="tracking-[0.2em] text-xs font-medium premium-text-muted uppercase">Loading Portfolio...</p>
                     </div>
                 ) : sellerProducts && sellerProducts.length > 0 ? (
                     <>
-                        {/* Stats Bar */}
-                        <div className="dashboard-stats">
-                            <div className="stat-card">
-                                <span className="stat-label">Total Products</span>
-                                <span className="stat-value">{sellerProducts.length}</span>
+                        <div className="grid gap-8 mb-16 sm:grid-cols-3">
+                            <div className="premium-surface border border-[var(--border)] p-10 flex flex-col justify-center">
+                                <span className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-4">Total Assortment</span>
+                                <span className="font-playfair text-5xl font-medium">{sellerProducts.length}</span>
                             </div>
-                            <div className="stat-card">
-                                <span className="stat-label">Active</span>
-                                <span className="stat-value">
-                                    {sellerProducts.filter(
-                                        (p) => p.status !== "inactive"
-                                    ).length}
-                                </span>
+                            <div className="premium-surface border border-[var(--border)] p-10 flex flex-col justify-center">
+                                <span className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-4">Active Pieces</span>
+                                <span className="font-playfair text-5xl font-medium">{sellerProducts.filter((p) => p.status !== "inactive").length}</span>
                             </div>
-                            <div className="stat-card">
-                                <span className="stat-label">Total Value</span>
-                                <span className="stat-value">
-                                    ₹
-                                    {sellerProducts
-                                        .reduce(
-                                            (sum, p) =>
-                                                sum + (parseInt(p.price?.amount) || 0),
-                                            0
-                                        )
-                                        .toLocaleString()}
+                            <div className="premium-surface border border-[var(--border)] p-10 flex flex-col justify-center">
+                                <span className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-4">Portfolio Value</span>
+                                <span className="font-playfair text-5xl font-medium text-[var(--accent)]">
+                                    ₹{sellerProducts.reduce((sum, p) => sum + (parseInt(p.price?.amount) || 0), 0).toLocaleString()}
                                 </span>
                             </div>
                         </div>
 
-                        {/* Products Grid */}
-                        <div className="dashboard-grid">
+                        <div className="grid gap-x-8 gap-y-16 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                             {filteredProducts.map((product) => (
-                                <div key={product._id} className="product-card" onClick={() => {
-                                    console.log('done');
-                                    console.log('Editing product:', product._id);
-                                    navigate(`/seller/edit-product/${product._id}`);
-
-                                }}>
-                                    {/* Product Image */}
-                                    <div className="product-card-image">
+                                <div key={product._id} className="group cursor-pointer flex flex-col" onClick={() => navigate(`/seller/edit-product/${product._id}`)}>
+                                    <div className="relative aspect-[3/4] w-full bg-[var(--bg-secondary)] overflow-hidden mb-6 border border-[var(--border)] rounded-[10px]">
                                         {product.images && product.images.length > 0 ? (
                                             <img
                                                 src={product.images[0].url}
                                                 alt={product.title}
-                                                className="product-img"
+                                                className="h-full w-full object-cover transition-transform duration-1000 group-hover:scale-105 opacity-90 group-hover:opacity-100 rounded-[10px]"
                                             />
                                         ) : (
-                                            <div className="product-img-placeholder">
-                                                No Image
-                                            </div>
+                                            <div className="flex h-full w-full items-center justify-center text-[10px] uppercase tracking-widest premium-text-muted">No Media</div>
                                         )}
-                                        <div className="product-overlay">
-                                            <div className="overlay-actions">
-
-
-                                            </div>
-                                        </div>
                                         {product.status === "featured" && (
-                                            <span className="product-badge">Featured</span>
+                                            <div className="absolute top-4 left-4 bg-[var(--bg-primary)] px-3 py-1 text-[9px] font-medium tracking-[0.2em] uppercase border border-[var(--border)]">
+                                                Featured
+                                            </div>
                                         )}
                                     </div>
 
-                                    {/* Product Info */}
-                                    <div className="product-card-content">
-                                        <h3 className="product-card-title">
-                                            {product.title}
-                                        </h3>
-                                        <p className="product-card-description">
-                                            {product.description.length > 60
-                                                ? product.description.substring(0, 60) +
-                                                "..."
-                                                : product.description}
+                                    <div className="flex flex-col flex-1">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <h3 className="font-playfair text-xl transition-colors group-hover:text-[var(--accent)] line-clamp-1 flex-1 pr-4">{product.title}</h3>
+                                            <span className="text-sm font-light">
+                                                ₹{product.price?.amount?.toLocaleString() || '0'}
+                                            </span>
+                                        </div>
+
+                                        <p className="text-xs font-light premium-text-muted line-clamp-2 mb-6">
+                                            {product.description}
                                         </p>
 
-                                        {/* Product Details */}
-                                        <div className="product-card-details">
-                                            <div className="detail-item">
-                                                <span className="detail-label">Price</span>
-                                                <span className="detail-value">
-                                                    ₹{product.price?.amount}
-                                                </span>
-                                            </div>
-                                            <div className="detail-item">
-                                                <span className="detail-label">Currency</span>
-                                                <span className="detail-value">
-                                                    {product.price?.currency}
-                                                </span>
-                                            </div>
+                                        <div className="flex justify-between items-center text-[10px] uppercase tracking-widest premium-text-muted border-b border-[var(--border)] pb-4 mb-4">
+                                            <span>Variants: {product.variants?.length || 0}</span>
+                                            <span>Stock: {product.variants?.reduce((sum, v) => sum + (Number(v.stock) || 0), 0) || 0}</span>
                                         </div>
 
-                                        {/* Variants Info */}
-                                        {product.variants && (
-                                            <div className="product-variants">
-                                                <span className="variant-label">
-                                                    Variants: {product.variants?.length || 0}
-                                                </span>
-                                            </div>
-                                        )}
-
-                                        {/* Card Actions */}
-                                        <div className="product-card-actions">
-                                            <button
-                                                className="action-link view-btn"
-
-                                            >
-                                                View Details
-                                            </button>
-
-
-                                        </div>
+                                        <button
+                                            className="text-[10px] uppercase tracking-[0.2em] hover:text-[var(--accent)] transition-colors text-left"
+                                        >
+                                            Modify Piece
+                                        </button>
                                     </div>
                                 </div>
                             ))}
                         </div>
                     </>
                 ) : (
-                    <div className="dashboard-empty">
-                        <div className="empty-icon">📦</div>
-                        <h3 className="empty-title">No Products Yet</h3>
-                        <p className="empty-text">
-                            Start selling by creating your first product
-                        </p>
+                    <div className="flex flex-col items-center justify-center py-40 border border-[var(--border)]">
+                        <div className="text-4xl mb-8 font-light premium-text-muted">_</div>
+                        <h3 className="font-playfair text-3xl font-medium mb-4">Empty Portfolio</h3>
+                        <p className="text-sm font-light premium-text-muted mb-10">You have not curated any pieces yet.</p>
                         <button
-                            className="empty-cta"
+                            className="btn-accent px-10 py-4 text-xs uppercase tracking-[0.2em] font-medium"
                             onClick={() => navigate("/seller/create-product")}
                         >
-                            Create Your First Product
+                            Curate First Piece
                         </button>
                     </div>
                 )}
-            </div>
-        </section>
+            </main>
+        </div>
     );
 };
 

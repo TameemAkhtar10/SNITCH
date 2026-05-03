@@ -10,21 +10,21 @@ const cartSlice = createSlice({
     },
     reducers: {
         setcart: (state, action) => {
-            state.loading = false
-            state.error = null
             state.items = action.payload
-            state.totalPrice = action.payload?.reduce((sum, item) => sum + (item.price?.amount || 0) * (item.quantity || 1), 0) || 0
+            state.error = null
         },
         addItem: (state, action) => {
             state.items.push(action.payload)
-            state.totalPrice += (action.payload.price?.amount || 0) * (action.payload.quantity || 1)
         },
         removeItem: (state, action) => {
-            const item = state.items.find(i => i._id === action.payload)
+            state.items = state.items.filter(item => item._id !== action.payload)
+        },
+        updateItemQuantity: (state, action) => {
+            const { itemId, quantity } = action.payload
+            const item = state.items.find(item => item._id === itemId)
             if (item) {
-                state.totalPrice -= (item.price?.amount || 0) * (item.quantity || 1)
+                item.quantity = quantity
             }
-            state.items = state.items.filter(i => i._id !== action.payload)
         },
         setLoading: (state, action) => {
             state.loading = action.payload
@@ -35,10 +35,11 @@ const cartSlice = createSlice({
         clearCart: (state) => {
             state.items = []
             state.totalPrice = 0
+            state.error = null
         }
     }
 })
 
-export const { setcart, addItem, removeItem, setLoading, setError, clearCart } = cartSlice.actions
+export const { setcart, addItem, removeItem, updateItemQuantity, setLoading, setError, clearCart } = cartSlice.actions
 export default cartSlice.reducer
 

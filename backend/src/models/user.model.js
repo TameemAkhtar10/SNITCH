@@ -33,8 +33,16 @@ let userSChema = new mongoose.Schema({
         type: String,
         enum: ['buyer', 'seller'],
         default: 'buyer'
+    },
+    recentlyViewed: {
+        type: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'products'
+        }],
+        default: []
     }
-})
+}
+    , { timestamps: true });
 userSChema.pre("save", async function () {
     if (!this.password || !this.isModified("password")) return
 

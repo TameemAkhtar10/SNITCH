@@ -10,14 +10,12 @@ const imagekit = new ImageKit({
 })
 
 export const createproductcontroller = async (req, res) => {
-    console.log(req.body)
-    console.log(req.files)
     try {
-        const { title, description, priceAmount, priceCurrency = "INR", variants } = req.body;
+        const { title, description, priceAmount, priceCurrency = "INR", stock, variants } = req.body;
         const sellerId = req.user._id;
 
         if (!title || !description || !priceAmount) {
-            return res.status(400).json({ message: "Title, description, and price are required" });
+            return res.status(400).json({ success: false, message: "Title, description, and price are required", data: {} });
         }
 
         // Upload images if provided
@@ -32,7 +30,7 @@ export const createproductcontroller = async (req, res) => {
                     uploadedImages.push({ url: response.url });
                 } catch (error) {
                     console.error("Error uploading image:", error);
-                    return res.status(500).json({ message: "Failed to upload image" });
+                    return res.status(500).json({ success: false, message: "Failed to upload image", data: {} });
                 }
             }
         }
@@ -45,6 +43,7 @@ export const createproductcontroller = async (req, res) => {
                 amount: priceAmount,
                 currency: priceCurrency
             },
+            stock: stock !== undefined && stock !== '' ? parseInt(stock, 10) : 0,
             images: uploadedImages,
             variants: variants ? JSON.parse(variants) : []
         });
@@ -52,37 +51,48 @@ export const createproductcontroller = async (req, res) => {
         const populatedProduct = await newProduct.populate('seller', 'fullname email contact');
 
         return res.status(201).json({
-            message: "Product created successfully",
             success: true,
-            product: populatedProduct
+            message: "Product created successfully",
+            product: populatedProduct,
+            data: { product: populatedProduct }
         });
     } catch (error) {
         console.log(error);
-        return res.status(500).json({ message: "Internal server error" });
+        return res.status(500).json({ success: false, message: "Internal server error", data: {} });
     }
 }
 
 export async function getSellerProducts(req, res) {
-    const seller = req.user;
+    try {
+        const seller = req.user;
+        const products = await productModel.find({ seller: seller._id });
 
-    const products = await productModel.find({ seller: seller._id });
-
-
-    res.status(200).json({
-        message: "Products fetched successfully",
-        success: true,
-        products
-    })
+        res.status(200).json({
+            success: true,
+            message: "Products fetched successfully",
+            products,
+            data: { products }
+        })
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ success: false, message: "Internal server error", data: {} });
+    }
 }
 
 export async function getAllProducts(req, res) {
-    const products = await productModel.find()
+    try {
+        const products = await productModel.find()
 
-    return res.status(200).json({
-        message: "Products fetched successfully",
-        success: true,
-        products
-    })
+        return res.status(200).json({
+            success: true,
+            message: "Products fetched successfully",
+            products,
+            data: { products }
+        })
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ success: false, message: "Internal server error", data: {} });
+    }
 }
 export const getProductById = async (req, res) => {
     const { id } = req.params;
@@ -90,35 +100,36 @@ export const getProductById = async (req, res) => {
     try {
         const product = await productModel.findById(id)
         if (!product) {
-            return res.status(404).json({ message: "Product not found" });
+            return res.status(404).json({ success: false, message: "Product not found", data: {} });
         }
         return res.status(200).json({
-            message: "Product fetched successfully",
             success: true,
-            product
+            message: "Product fetched successfully",
+            product,
+            data: { product }
         });
     }
     catch (error) {
         console.log(error);
-        return res.status(500).json({ message: "Internal server error" });
+        return res.status(500).json({ success: false, message: "Internal server error", data: {} });
     }
 }
 
 export const updateproductcontroller = async (req, res) => {
     try {
         const { id } = req.params;
-        const { title, description, priceAmount, priceCurrency = "INR", variants, existingImages } = req.body;
+        const { title, description, priceAmount, priceCurrency = "INR", stock, variants, existingImages } = req.body;
         const sellerId = req.user._id;
 
         // Find the product
         const product = await productModel.findById(id);
         if (!product) {
-            return res.status(404).json({ message: "Product not found" });
+            return res.status(404).json({ success: false, message: "Product not found", data: {} });
         }
 
         // Check if the current user is the seller
         if (product.seller.toString() !== sellerId.toString()) {
-            return res.status(403).json({ message: "Unauthorized to update this product" });
+            return res.status(403).json({ success: false, message: "Unauthorized to update this product", data: {} });
         }
 
         // Handle new images upload
@@ -133,7 +144,7 @@ export const updateproductcontroller = async (req, res) => {
                     uploadedImages.push({ url: response.url });
                 } catch (error) {
                     console.error("Error uploading image:", error);
-                    return res.status(500).json({ message: "Failed to upload image" });
+                    return res.status(500).json({ success: false, message: "Failed to upload image", data: {} });
                 }
             }
         }
@@ -156,6 +167,9 @@ export const updateproductcontroller = async (req, res) => {
             amount: priceAmount || product.price.amount,
             currency: priceCurrency || product.price.currency
         };
+        if (stock !== undefined && stock !== '') {
+            product.stock = parseInt(stock, 10);
+        }
         if (images.length > 0) {
             product.images = images;
         }
@@ -171,12 +185,13 @@ export const updateproductcontroller = async (req, res) => {
         const updatedProduct = await product.populate('seller', 'fullname email contact');
 
         return res.status(200).json({
-            message: "Product updated successfully",
             success: true,
-            product: updatedProduct
+            message: "Product updated successfully",
+            product: updatedProduct,
+            data: { product: updatedProduct }
         });
     } catch (error) {
         console.log(error);
-        return res.status(500).json({ message: "Internal server error" });
+        return res.status(500).json({ success: false, message: "Internal server error", data: {} });
     }
 }
