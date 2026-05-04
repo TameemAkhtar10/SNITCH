@@ -202,14 +202,13 @@ const Register = () => {
                 Return
             </button>
 
-            <aside className="hidden md:flex md:w-5/12 flex-col justify-between p-16 border-r border-[var(--border)] relative overflow-hidden" style={{
-                backgroundImage: 'url("https://images.unsplash.com/photo-1561181286-d3fee7d55364?w=800&q=80")',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundAttachment: 'fixed'
-            }}>
-                {/* Dark overlay */}
-                <div className="absolute inset-0 bg-black/40" />
+            <aside className="hidden md:flex md:w-5/12 flex-col justify-between p-16 border-r border-[var(--border)] relative overflow-hidden">
+                <img
+                    src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1400&q=80"
+                    alt="Premium fashion store interior with apparel racks"
+                    className="absolute inset-0 h-full w-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/30" />
 
                 <div className="relative z-10">
                     <h1 className="font-playfair text-2xl font-semibold tracking-[0.2em] uppercase text-white drop-shadow-lg">S N I T C H</h1>
