@@ -3,6 +3,8 @@ import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { useCart } from '../Hooks/UseCart.js'
 import { updateItemQuantity } from '../State/cart.slice.js'
+import { useRazorpay } from "react-razorpay";
+import { useOrder } from '../../Orders/Hooks/useOrder.js'
 
 const useDarkMode = () => {
     const [isDark, setIsDark] = useState(() => {
@@ -10,6 +12,8 @@ const useDarkMode = () => {
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
         return storedTheme === 'dark' || (!storedTheme && prefersDark)
     })
+
+
 
     const toggleDark = () => {
         setIsDark((prev) => {
@@ -24,30 +28,22 @@ const useDarkMode = () => {
 
 const Cart = () => {
     const navigate = useNavigate()
-    const { fetchCart, removeFromCartHandler, updateCartItemHandler } = useCart()
+    const { fetchCart, removeFromCartHandler, updateCartItemHandler, clearCartHandler, handlecreateorder, handlecheckpayment } = useCart()
+    const { createOrderHandler } = useOrder()
     const items = useSelector((state) => state.cart?.items || [])
+    const subtotal = useSelector((state) => state.cart?.subtotal || 0)
     const loading = useSelector((state) => state.cart?.loading)
     const error = useSelector((state) => state.cart?.error)
-    const [couponCode, setCouponCode] = useState('')
-    const [appliedCoupon, setAppliedCoupon] = useState(null)
-    const [couponMessage, setCouponMessage] = useState('')
-    const [couponMessageType, setCouponMessageType] = useState('')
+    const { Razorpay, isLoading } = useRazorpay()
 
     useEffect(() => {
         fetchCart().catch(() => { })
-    }, [])
-
-    const subtotal = items.reduce((sum, item) => {
-        const amount = Number(item?.amount || 0)
-        const qty = Number(item?.quantity || 0)
-        return sum + amount * qty
-    }, 0)
+    }, [fetchCart])
 
     const currency = items?.[0]?.currency || 'INR'
     const currencyPrefix = currency === 'INR' ? '₹' : ''
     const shipping = subtotal > 999 || subtotal === 0 ? 0 : 79
-    const couponDiscount = appliedCoupon?.code === 'SNITCH10' ? subtotal * 0.1 : 0
-    const total = subtotal - couponDiscount + shipping
+    const total = subtotal + shipping
     const estimatedDeliveryDate = (() => {
         const deliveryDate = new Date()
         deliveryDate.setDate(deliveryDate.getDate() + 5)
@@ -83,20 +79,113 @@ const Cart = () => {
         }
     }
 
-    const handleApplyCoupon = (event) => {
-        event.preventDefault()
+    const user = useSelector((state) => state.auth?.user)
+    const buildOrderItems = (cartItems) => cartItems
+        .map((item) => {
+            const product = item?.product || {}
+            const variant = item?.variant || null
 
-        const normalizedCode = couponCode.trim().toUpperCase()
-        if (normalizedCode === 'SNITCH10') {
-            setAppliedCoupon({ code: 'SNITCH10', discountPercent: 10 })
-            setCouponMessage('Coupon applied successfully. 10% discount unlocked.')
-            setCouponMessageType('success')
-            return
+            return {
+                productId: product?._id,
+                variantId: variant?._id || variant || null,
+                title: product?.title || item?.title || 'Item',
+                image: variant?.images?.[0]?.url || product?.images?.[0]?.url || item?.image || '',
+                quantity: Number(item?.quantity || 1),
+                amount: Number(item?.amount || 0),
+                currency: item?.currency || currency,
+            }
+        })
+        .filter((item) => item.productId && item.title)
+
+    const handlecheckout = async (amount, currency) => {
+        try {
+            if (isLoading || !Razorpay) {
+                window.alert('Payment gateway is still loading. Please try again in a moment.')
+                return
+            }
+
+            if (!amount || Number(amount) <= 0) {
+                window.alert('Invalid order total. Please refresh the cart and try again.')
+                return
+            }
+
+            const response = await handlecreateorder(amount, currency)
+            console.log('Order created successfully:', response)
+
+            if (!response?.id || !response?.amount || !response?.currency) {
+                window.alert('Order initialization failed. Please try again.')
+                return
+            }
+
+            const options = {
+                key: "rzp_test_SldkzeX392DYuC",
+                amount: response.amount,
+                currency: response.currency,
+                name: "Snitch",
+                description: "Test Transaction",
+                order_id: response.id, // Generate order_id on server
+                handler: async (paymentResponse) => {
+                    const isvalid = await handlecheckpayment(paymentResponse)
+                    if (isvalid) {
+                        try {
+                            const orderItems = buildOrderItems(items)
+                            const orderResponse = await createOrderHandler({
+                                items: orderItems,
+                                totalAmount: total,
+                                currency,
+                                paymentId: paymentResponse.razorpay_payment_id,
+                                razorpayOrderId: paymentResponse.razorpay_order_id,
+                            })
+                            const createdOrder = orderResponse?.order || orderResponse?.data?.order || orderResponse?.data?.data?.order || null
+                            await clearCartHandler()
+                            navigate('/order-successfull', {
+                                state: {
+                                    orderId: createdOrder?._id || paymentResponse.razorpay_order_id,
+                                    backendOrderId: createdOrder?._id || null,
+                                    razorpayOrderId: paymentResponse.razorpay_order_id,
+                                    paymentId: paymentResponse.razorpay_payment_id,
+                                    items,
+                                    total,
+                                    currency,
+                                    estimatedDelivery: estimatedDeliveryDate
+                                }
+                            })
+                        } catch (clearError) {
+                            console.error('Failed to clear cart after payment:', clearError)
+                            window.alert('Payment was successful, but the cart could not be cleared. Please refresh the page.')
+                        }
+                    } else {
+                        window.alert('Payment verification failed. Please contact support if your payment was deducted.')
+                    }
+                },
+                modal: {
+                    ondismiss: () => {
+                        console.log('Payment popup closed by user')
+                    },
+                },
+                prefill: {
+                    name: user?.fullname || '',
+                    email: user?.email || '',
+                    contact: user?.contact || '',
+                },
+                theme: {
+                    color: "#b8860b"
+                },
+            };
+
+            const razorpayInstance = new Razorpay(options)
+            razorpayInstance.on('payment.failed', (paymentError) => {
+                const message = paymentError?.error?.description || 'Payment failed. Please try again.'
+                window.alert(message)
+                console.error('Payment failed:', paymentError)
+            })
+            razorpayInstance.open()
         }
-
-        setAppliedCoupon(null)
-        setCouponMessage('Invalid coupon code.')
-        setCouponMessageType('error')
+        catch (error) {
+            console.error('Failed to create order:', error)
+            const errorMsg = error?.response?.data?.message || 'Failed to create order'
+            window.alert(errorMsg)
+        }
     }
 
     const handleRemove = async (cartItemId) => {
@@ -176,7 +265,7 @@ const Cart = () => {
             <header className="sticky top-0 z-40 glass-header flex items-center justify-between px-4 py-3 sm:px-12 sm:py-5">
                 <button
                     onClick={() => navigate('/')}
-                    className="shrink-0 text-xs uppercase tracking-[0.15em] whitespace-nowrap premium-text-muted hover:text-[var(--text-primary)] transition-colors text-left"
+                    className="shrink-0 text-[8px] uppercase tracking-[0.15em] whitespace-nowrap premium-text-muted hover:text-(--text-primary) transition-colors text-left"
                 >
                     Keep Browsing
                 </button>
@@ -191,32 +280,42 @@ const Cart = () => {
                     </span>
                     <button
                         onClick={toggleDark}
-                        className="shrink-0 text-xs uppercase tracking-[0.1em] whitespace-nowrap premium-text-muted hover:text-[var(--text-primary)] transition-colors"
+                        aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+                        className="shrink-0 text-xs uppercase tracking-widest whitespace-nowrap premium-text-muted hover:text-(--text-primary) transition-colors"
                     >
-                        {isDark ? 'Light' : 'Dark'}
+                        {isDark ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="4" />
+                                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+                            </svg>
+                        ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+                            </svg>
+                        )}
                     </button>
                 </div>
             </header>
 
-            <main className="mx-auto max-w-5xl px-6 py-12 lg:py-24">
-                <div className="mb-16">
-                    <p className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-4">The Collection</p>
-                    <h1 className="font-playfair text-5xl sm:text-6xl font-medium leading-tight mb-4">Your Selection</h1>
+            <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12 lg:py-24">
+                <div className="mb-8">
+                    <p className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-3">The Collection</p>
+                    <h1 className="font-playfair text-3xl sm:text-5xl md:text-6xl font-medium leading-tight mb-2">Your Selection</h1>
                 </div>
 
                 {error && (
-                    <div className="mb-8 p-6 border border-[var(--danger)] text-[var(--danger)] text-xs uppercase tracking-widest">
+                    <div className="mb-8 p-6 border border-(--danger) text-(--danger) text-xs uppercase tracking-widest">
                         {String(error)}
                     </div>
                 )}
 
                 {loading ? (
                     <div className="flex flex-col items-center justify-center py-32">
-                        <div className="w-12 h-12 border-2 border-t-transparent border-[var(--text-primary)] rounded-full animate-spin mb-4"></div>
+                        <div className="w-12 h-12 border-2 border-t-transparent border-(--text-primary) rounded-full animate-spin mb-4"></div>
                         <p className="tracking-[0.2em] text-xs font-medium premium-text-muted uppercase">Curating Selection...</p>
                     </div>
                 ) : items.length === 0 ? (
-                    <div className="flex flex-col items-start justify-center py-20 border-t border-[var(--border)]">
+                    <div className="flex flex-col items-start justify-center py-20 border-t border-(--border)">
                         <h2 className="font-playfair text-3xl mb-4">Your selection is empty.</h2>
                         <p className="text-sm premium-text-muted mb-10 font-light">Add pieces from our collection to begin.</p>
                         <button
@@ -227,7 +326,7 @@ const Cart = () => {
                         </button>
                     </div>
                 ) : (
-                    <div className="grid gap-16 lg:grid-cols-[1fr_360px]">
+                    <div className="grid gap-8 sm:gap-16 lg:grid-cols-[1fr_360px]">
                         <section className="flex flex-col gap-10">
                             {items.map((item) => {
                                 const product = item?.product
@@ -244,9 +343,9 @@ const Cart = () => {
                                 const size = attrs?.size || attrs?.Size || null
 
                                 return (
-                                    <div key={item?._id} className="flex gap-8 group">
+                                    <div key={item?._id} className="flex flex-col sm:flex-row gap-4 sm:gap-8 group">
                                         <div
-                                            className="h-40 w-32 shrink-0 cursor-pointer overflow-hidden premium-surface rounded-[10px]"
+                                            className="h-28 w-24 sm:h-40 sm:w-32 shrink-0 cursor-pointer overflow-hidden premium-surface rounded-[10px]"
                                             onClick={() => product?._id && navigate(`/product/${product._id}`)}
                                         >
                                             {img ? (
@@ -261,7 +360,7 @@ const Cart = () => {
                                                 <div className="flex justify-between items-start gap-4 mb-2">
                                                     <h3
                                                         onClick={() => product?._id && navigate(`/product/${product._id}`)}
-                                                        className="font-playfair cursor-pointer text-2xl transition-colors hover:text-[var(--accent)]"
+                                                        className="font-playfair cursor-pointer text-lg sm:text-2xl transition-colors hover:text-(--accent)"
                                                     >
                                                         {title}
                                                     </h3>
@@ -269,22 +368,22 @@ const Cart = () => {
                                                 {(color || size) && (
                                                     <div className="flex flex-wrap gap-2 mb-3">
                                                         {color && (
-                                                            <span className="inline-flex items-center rounded-full border border-[var(--border)] px-3 py-1 text-[10px] uppercase tracking-[0.2em] premium-text-muted">
+                                                            <span className="inline-flex items-center rounded-full border border-(--border) px-3 py-1 text-[10px] uppercase tracking-[0.2em] premium-text-muted">
                                                                 {color}
                                                             </span>
                                                         )}
                                                         {size && (
-                                                            <span className="inline-flex items-center rounded-full border border-[var(--border)] px-3 py-1 text-[10px] uppercase tracking-[0.2em] premium-text-muted">
+                                                            <span className="inline-flex items-center rounded-full border border-(--border) px-3 py-1 text-[10px] uppercase tracking-[0.2em] premium-text-muted">
                                                                 {size}
                                                             </span>
                                                         )}
                                                     </div>
                                                 )}
-                                                <p className="text-lg font-light mb-1">{formatMoney(amount)}</p>
+                                                <p className="text-base sm:text-lg font-light mb-1">{formatMoney(amount)}</p>
                                                 {currentPrice > amount ? (
-                                                    <p className="text-[10px] uppercase tracking-widest text-[var(--danger)] mb-4">Price increased</p>
+                                                    <p className="text-[10px] uppercase tracking-widest text-(--danger) mb-4">Price increased</p>
                                                 ) : currentPrice < amount ? (
-                                                    <p className="text-[10px] uppercase tracking-widest text-[var(--success)] mb-4">You save {formatMoney(priceDifference)}</p>
+                                                    <p className="text-[10px] uppercase tracking-widest text-(--success) mb-4">You save {formatMoney(priceDifference)}</p>
                                                 ) : null}
 
                                                 <div className="flex flex-wrap gap-6">
@@ -303,15 +402,15 @@ const Cart = () => {
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center justify-between pt-4 border-t border-[var(--border)] mt-4">
-                                                <div className="flex items-center gap-4">
+                                            <div className="flex items-center justify-between pt-4 border-t border-(--border) mt-4">
+                                                <div className="flex items-center gap-3">
                                                     <span className="text-[9px] uppercase tracking-[0.2em] premium-text-muted">Quantity</span>
-                                                    <div className="flex items-center overflow-hidden rounded-full border border-[var(--border)]">
+                                                    <div className="flex items-center overflow-hidden rounded-full border border-(--border)">
                                                         <button
                                                             type="button"
                                                             onClick={() => handleQuantityChange(item, Math.max(1, qty - 1))}
                                                             disabled={qty <= 1 || loading}
-                                                            className="flex h-9 w-9 items-center justify-center text-lg transition-colors disabled:cursor-not-allowed disabled:opacity-40 hover:text-[var(--accent)]"
+                                                            className="flex h-9 w-9 items-center justify-center text-lg transition-colors disabled:cursor-not-allowed disabled:opacity-40 hover:text-(--accent)"
                                                             aria-label="Decrease quantity"
                                                         >
                                                             −
@@ -321,7 +420,7 @@ const Cart = () => {
                                                             type="button"
                                                             onClick={() => handleQuantityChange(item, Math.min(stock, qty + 1))}
                                                             disabled={qty >= stock || stock <= 0 || loading}
-                                                            className="flex h-9 w-9 items-center justify-center text-lg transition-colors disabled:cursor-not-allowed disabled:opacity-40 hover:text-[var(--accent)]"
+                                                            className="flex h-9 w-9 items-center justify-center text-lg transition-colors disabled:cursor-not-allowed disabled:opacity-40 hover:text-(--accent)"
                                                             aria-label="Increase quantity"
                                                         >
                                                             +
@@ -329,13 +428,13 @@ const Cart = () => {
                                                     </div>
                                                 </div>
 
-                                                <div className={`text-[10px] uppercase tracking-[0.15em] ${stock === 0 ? 'text-[var(--danger)]' : stock <= 3 ? 'text-[var(--accent)]' : 'text-[var(--success)]'}`}>
+                                                <div className={`text-[10px] uppercase tracking-[0.15em] ${stock === 0 ? 'text-(--danger)' : stock <= 3 ? 'text-(--accent)' : 'text-(--success)'}`}>
                                                     {stock === 0 ? 'Out of Stock' : stock <= 3 ? `Only ${stock} Left` : `${stock} In Stock`}
                                                 </div>
 
                                                 <button
                                                     onClick={() => handleRemove(item?._id)}
-                                                    className="text-[10px] uppercase tracking-[0.2em] premium-text-muted hover:text-[var(--danger)] transition-colors underline underline-offset-4"
+                                                    className="text-[10px] uppercase tracking-[0.2em] premium-text-muted hover:text-(--danger) transition-colors underline underline-offset-4"
                                                 >
                                                     Remove
                                                 </button>
@@ -347,8 +446,8 @@ const Cart = () => {
                         </section>
 
                         <aside className="lg:sticky lg:top-32 h-fit">
-                            <div className="premium-surface p-8 sm:p-10 border border-[var(--border)]">
-                                <h3 className="text-xs uppercase tracking-[0.2em] mb-8 pb-4 border-b border-[var(--border)]">Order Summary</h3>
+                            <div className="premium-surface p-4 sm:p-8 border border-(--border)">
+                                <h3 className="text-xs uppercase tracking-[0.2em] mb-8 pb-4 border-b border-(--border)">Order Summary</h3>
 
 
 
@@ -357,15 +456,9 @@ const Cart = () => {
                                         <span>Subtotal</span>
                                         <span className="premium-text">{formatMoney(subtotal)}</span>
                                     </div>
-                                    {couponDiscount > 0 && (
-                                        <div className="flex justify-between">
-                                            <span>Discount (SNITCH10)</span>
-                                            <span className="text-[var(--success)]">- {formatMoney(couponDiscount)}</span>
-                                        </div>
-                                    )}
                                     <div className="flex justify-between">
                                         <span>Shipping</span>
-                                        <span className={shipping === 0 ? "text-[var(--accent)] uppercase text-xs tracking-widest font-medium" : "premium-text"}>
+                                        <span className={shipping === 0 ? "text-(--accent) uppercase text-xs tracking-widest font-medium" : "premium-text"}>
                                             {shipping === 0 ? 'Complimentary' : formatMoney(shipping)}
                                         </span>
                                     </div>
@@ -375,14 +468,14 @@ const Cart = () => {
                                     </div>
                                 </div>
 
-                                <div className="flex items-end justify-between pt-6 border-t border-[var(--border)] mb-10">
+                                <div className="flex items-end justify-between pt-4 border-t border-(--border) mb-6">
                                     <span className="text-[10px] uppercase tracking-[0.2em] premium-text-muted">Total</span>
                                     <span className="font-playfair text-3xl">{formatMoney(total)}</span>
                                 </div>
 
                                 <button
-                                    onClick={() => window.alert('Checkout not implemented yet')}
-                                    className="btn-accent w-full py-5 text-xs uppercase tracking-[0.2em] font-medium"
+                                    onClick={() => handlecheckout(total, "INR")}
+                                    className="btn-accent w-full py-3 sm:py-5 px-4 sm:px-10 text-xs uppercase tracking-[0.2em] font-medium"
                                 >
                                     Proceed to Purchase
                                 </button>

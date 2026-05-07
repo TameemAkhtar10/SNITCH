@@ -6,12 +6,20 @@ const cartSlice = createSlice({
         items: [],
         loading: false,
         error: null,
-        totalPrice: 0
+        totalPrice: 0,
+        subtotal: 0,
+        totalItems: 0,
+        itemCount: 0
     },
     reducers: {
         setcart: (state, action) => {
             state.items = action.payload
             state.error = null
+        },
+        setCartTotals: (state, action) => {
+            state.subtotal = action.payload.subtotal || 0
+            state.totalItems = action.payload.totalItems || 0
+            state.itemCount = action.payload.itemCount || 0
         },
         addItem: (state, action) => {
             state.items.push(action.payload)
@@ -35,11 +43,14 @@ const cartSlice = createSlice({
         clearCart: (state) => {
             state.items = []
             state.totalPrice = 0
+            state.subtotal = 0
+            state.totalItems = 0
+            state.itemCount = 0
             state.error = null
         }
     }
 })
 
-export const { setcart, addItem, removeItem, updateItemQuantity, setLoading, setError, clearCart } = cartSlice.actions
+export const { setcart, setCartTotals, addItem, removeItem, updateItemQuantity, setLoading, setError, clearCart } = cartSlice.actions
 export default cartSlice.reducer
 

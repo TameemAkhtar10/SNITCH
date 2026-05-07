@@ -1,7 +1,8 @@
-import { addItem, removeItem, getCart, updateItem } from '../services/cart.api.js'
+import { addItem, removeItem, getCart, updateItem, createorder, verifyPayment, clearCartApi } from '../services/cart.api.js'
 import { useDispatch } from 'react-redux'
 import { useCallback } from 'react'
-import { addItem as addItemToCart, setcart, removeItem as removeItemAction, setLoading, setError, clearCart } from '../State/cart.slice.js'
+import { setcart, setCartTotals, removeItem as removeItemAction, setLoading, setError, clearCart } from '../State/cart.slice.js'
+
 
 export const useCart = () => {
     const dispatch = useDispatch()
@@ -12,8 +13,18 @@ export const useCart = () => {
             const response = await addItem(productId, variantId, cartItemData)
             if (response?.cart?.items) {
                 dispatch(setcart(response.cart.items))
+                dispatch(setCartTotals({
+                    subtotal: response?.subtotal || 0,
+                    totalItems: response?.totalItems || 0,
+                    itemCount: response?.itemCount || 0,
+                }))
             } else if (response?.items) {
                 dispatch(setcart(response.items))
+                dispatch(setCartTotals({
+                    subtotal: response?.subtotal || 0,
+                    totalItems: response?.totalItems || 0,
+                    itemCount: response?.itemCount || 0,
+                }))
             }
             dispatch(setError(null))
             return response
@@ -65,6 +76,11 @@ export const useCart = () => {
             const response = await getCart()
             if (response?.cart?.items) {
                 dispatch(setcart(response.cart.items))
+                dispatch(setCartTotals({
+                    subtotal: response?.subtotal || 0,
+                    totalItems: response?.totalItems || 0,
+                    itemCount: response?.itemCount || 0,
+                }))
             }
             dispatch(setError(null))
             return response
@@ -77,9 +93,31 @@ export const useCart = () => {
         }
     }, [dispatch])
 
-    const clearCartHandler = useCallback(() => {
-        dispatch(clearCart())
+    const clearCartHandler = useCallback(async () => {
+        try {
+            dispatch(setLoading(true))
+            const response = await clearCartApi()
+            dispatch(clearCart())
+            dispatch(setError(null))
+            return response
+        } catch (error) {
+            const errorMsg = error?.response?.data?.message || 'Failed to clear cart'
+            dispatch(setError(errorMsg))
+            throw error
+        } finally {
+            dispatch(setLoading(false))
+        }
     }, [dispatch])
 
-    return { addToCarthandler, removeFromCartHandler, updateCartItemHandler, fetchCart, clearCartHandler }
+    const handlecreateorder = async (amount, currency) => {
+        const response = await createorder(amount, currency)
+        return response.order
+    }
+    const handlecheckpayment = async ({ razorpay_order_id, razorpay_payment_id, razorpay_signature }) => {
+        const response = await verifyPayment({ razorpay_order_id, razorpay_payment_id, razorpay_signature })
+        return response.success
+    }
+
+    return { addToCarthandler, removeFromCartHandler, updateCartItemHandler, fetchCart, clearCartHandler, handlecreateorder, handlecheckpayment }
+
 }

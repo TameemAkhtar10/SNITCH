@@ -319,11 +319,14 @@ const ProductDetails = () => {
         if (!token) {
             navigate('/login', { state: { from: `/product/${productId}` } })
         } else {
+            const variantId = selectedVariant?._id || null
+            const variantIndex = selectedVariantIndex ?? null
+
             navigate(`/checkout/${productId}`, {
                 state: {
                     quantity,
-                    variantId: selectedVariant?._id,
-                    variantIndex: selectedVariantIndex,
+                    variantId,
+                    variantIndex,
                     color: selectedColor,
                     size: selectedSize
                 }
@@ -334,7 +337,7 @@ const ProductDetails = () => {
     const handleAddToCart = async () => {
         if (displayedStock === 0) {
             setCartMessage("❌ Out of stock!")
-            
+
             setTimeout(() => setCartMessage(""), 3000)
 
             return
@@ -344,33 +347,19 @@ const ProductDetails = () => {
             navigate('/login', { state: { from: `/product/${productId}` } })
             return
         }
- console.log('variants:', variants)
-    console.log('selectedVariant:', selectedVariant)
-    console.log('selectedVariantIndex:', selectedVariantIndex)
-        if (variants.length > 0 && !selectedVariant) {
-            setCartMessage("❌ Please select a variant first")
-            setTimeout(() => setCartMessage(""), 3000)
-            return
-        }
 
         setCartLoading(true)
         try {
-            let variantId = null
-
-            if (variants.length > 0) {
-                variantId = selectedVariant._id
-                console.log('Final variantId sent to API:', variantId)
-            } else {
-                variantId = productId
-            }
+            const variantId = selectedVariant ? selectedVariant._id : productId
+            console.log('Final variantId sent to API:', variantId)
 
             const cartData = {
                 quantity: quantity,
                 amount: displayedPrice,
                 currency: displayedCurrency
             }
-            console.log('productId:', productId)  // ADD THIS
-console.log('variantId:', variantId)
+            console.log('productId:', productId)
+            console.log('variantId:', variantId)
             await addToCarthandler(productId, variantId, cartData)
             setCartMessage("✅ Added to cart!")
             setTimeout(() => setCartMessage(""), 3000)
@@ -518,9 +507,19 @@ console.log('variantId:', variantId)
                 <div className="shrink-0 text-right">
                     <button
                         onClick={toggleDark}
+                        aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
                         className="shrink-0 text-xs uppercase tracking-[0.1em] whitespace-nowrap premium-text-muted hover:text-[var(--text-primary)] transition-colors"
                     >
-                        {isDark ? 'Light' : 'Dark'}
+                        {isDark ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="4" />
+                                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+                            </svg>
+                        ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+                            </svg>
+                        )}
                     </button>
                 </div>
             </header>
@@ -709,7 +708,17 @@ console.log('variantId:', variantId)
 
                         {cartMessage && (
                             <div className={`mt-6 py-4 text-center text-xs tracking-widest uppercase border ${cartMessage.includes('✅') ? 'border-[var(--success)] text-[var(--success)]' : 'border-[var(--danger)] text-[var(--danger)]'}`}>
-                                {cartMessage.replace('✅', '').replace('❌', '').trim()}
+                                <div className="flex flex-col items-center gap-2">
+                                    <span>{cartMessage.replace('✅', '').replace('❌', '').trim()}</span>
+                                    {cartMessage.includes('Added to cart') && (
+                                        <button
+                                            onClick={() => navigate('/cart')}
+                                            className="btn-outline px-3 py-1 text-[10px] uppercase tracking-widest"
+                                        >
+                                            View Cart
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         )}
 

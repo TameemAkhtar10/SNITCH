@@ -49,7 +49,7 @@ const Wishlist = () => {
     const loading = useSelector((state) => state.wishlist?.loading || false)
     const error = useSelector((state) => state.wishlist?.error || null)
     const token = getToken()
-    const { isDark } = useDarkMode()
+    const { isDark, toggleDark } = useDarkMode()
 
     useEffect(() => {
         if (token) {
@@ -126,6 +126,13 @@ const Wishlist = () => {
                     border-color: var(--text-primary);
                 }
 
+                .glass-header {
+                    background: color-mix(in srgb, var(--bg-primary) 88%, transparent);
+                    border-bottom: 1px solid var(--border);
+                    backdrop-filter: blur(16px);
+                    -webkit-backdrop-filter: blur(16px);
+                }
+
                 .wishlist-card {
                     transition: all 0.3s ease;
                 }
@@ -137,6 +144,43 @@ const Wishlist = () => {
                 ::-webkit-scrollbar-track { background: var(--bg-primary); }
                 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
             `}</style>
+
+            <header className="sticky top-0 z-40 glass-header flex items-center justify-between px-4 py-3 sm:px-12 sm:py-5">
+                <button
+                    onClick={() => navigate('/')}
+                    className="shrink-0 text-[8px] uppercase tracking-widest whitespace-nowrap premium-text-muted hover:text-(--text-primary) transition-colors text-left"
+                >
+                    Keep Browsing
+                </button>
+                <div className="flex-1 text-center">
+                    <span className="font-playfair whitespace-nowrap text-sm sm:text-2xl tracking-widest cursor-pointer font-semibold" onClick={() => navigate('/')}>
+                        S N I T C H
+                    </span>
+                </div>
+                <div className="shrink-0 flex justify-end items-center gap-4">
+                    <span className="hidden sm:inline-block shrink-0 text-xs uppercase tracking-[0.15em] whitespace-nowrap premium-text-muted">
+                        {wishlistItems.length} {wishlistItems.length === 1 ? 'Item' : 'Items'}
+                    </span>
+                    <button
+                        onClick={()=> {
+                            toggleDark()
+                        }}
+                        aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+                        className="shrink-0 text-xs uppercase tracking-widest whitespace-nowrap premium-text-muted hover:text-(--text-primary) transition-colors"
+                    >
+                        {isDark ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="4" />
+                                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+                            </svg>
+                        ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+                            </svg>
+                        )}
+                    </button>
+                </div>
+            </header>
 
             <main className="min-h-screen">
                 <div className="mx-auto max-w-[1600px] px-6 sm:px-12 py-20">
@@ -183,9 +227,9 @@ const Wishlist = () => {
                                             className="absolute top-4 right-4 p-2 rounded-full border border-[var(--border)] bg-[var(--bg-primary)]/80 text-[var(--danger)] backdrop-blur-md transition-all duration-300 hover:scale-110 hover:border-[var(--danger)] opacity-0 group-hover:opacity-100"
                                             aria-label="Remove from wishlist"
                                         >
-                                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-</svg>
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                                            </svg>
                                         </button>
                                     </div>
 

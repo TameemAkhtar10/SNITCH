@@ -11,7 +11,11 @@ import Home from "../features/Products/Pages/Home.jsx";
 import ProductDetails from "../features/Products/Pages/ProductDetails.jsx";
 import SellerProductDetail from "../features/Products/Pages/SellerProductDetail.jsx";
 import Cart from "../features/Cart/Pages/Cart.jsx";
+import OrderSuccessfull from "../features/Cart/Pages/OrderSuccessfull.jsx"
 import Wishlist from "../features/Wishlist/Pages/Wishlist.jsx";
+import MyOrders from "../features/Orders/Pages/MyOrders.jsx";
+import OrderDetail from "../features/Orders/Pages/OrderDetail.jsx";
+import SellerOrders from "../features/Orders/Pages/SellerOrders.jsx";
 export const router = createBrowserRouter([
     { path: "/login", element: <Login /> },
     { path: "/register", element: <Register /> },
@@ -27,10 +31,23 @@ export const router = createBrowserRouter([
     {
         path: "/cart",
         element: <BuyProtectedRoute><Cart /></BuyProtectedRoute>
+
+    },
+    {
+        path: "/order-successfull",
+        element: <BuyProtectedRoute><OrderSuccessfull /></BuyProtectedRoute>
     },
     {
         path: "/wishlist",
         element: <BuyProtectedRoute><Wishlist /></BuyProtectedRoute>
+    },
+    {
+        path: "/orders",
+        element: <ProtectedRoute><MyOrders /></ProtectedRoute>
+    },
+    {
+        path: "/orders/:orderId",
+        element: <ProtectedRoute><OrderDetail /></ProtectedRoute>
     },
     {
         path: "/seller",
@@ -39,6 +56,10 @@ export const router = createBrowserRouter([
     {
         path: "/seller/create-product",
         element: <SellerRoute><CreateProduct /></SellerRoute>
+    },
+    {
+        path: "/seller/orders",
+        element: <SellerRoute><SellerOrders /></SellerRoute>
     },
     {
         path: "/seller/edit-product/:productId",

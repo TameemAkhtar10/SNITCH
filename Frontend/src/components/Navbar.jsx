@@ -102,19 +102,31 @@ const Navbar = ({
         <>
             <header className="sticky top-0 z-50 glass-header overflow-x-clip">
                 <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-2 px-4 py-3 md:gap-4 md:px-8 md:py-4">
-                    {/* Hamburger icon on the left - Mobile and Desktop */}
+                    {/* Left side: Hamburger on mobile, brand wordmark on desktop */}
                     <div className="flex items-center justify-start">
                         <button
                             type="button"
                             onClick={() => setDrawerOpen(true)}
-                            className="group flex h-6 w-6 items-center justify-center text-[var(--text-primary)] transition-all duration-300 hover:text-[var(--accent)]"
+                            className="group flex h-6 w-6 items-center justify-center text-[var(--text-primary)] transition-all duration-300 hover:text-[var(--accent)] md:hidden"
                             aria-label="Open navigation drawer"
                         >
                             <HamburgerIcon className="h-6 w-6" />
                         </button>
+
+                        <button
+                            type="button"
+                          onClick={() => {
+                            if (catalogSectionRef.current) {
+                                catalogSectionRef.current.scrollIntoView({ behavior: 'smooth' })
+                            }   
+                            }}
+                            className="hidden items-center justify-start text-[var(--text-primary)] transition-all duration-300 hover:text-[var(--accent)] md:inline-flex"
+                            aria-label="Open navigation drawer"
+                        >
+                            <span className="font-playfair whitespace-nowrap text-sm sm:text-2xl tracking-widest cursor-pointer font-semibold">SNITCH</span>
+                        </button>
                     </div>
 
-                    {/* Right side: Icons */}
                     <div className="flex min-w-[68px] items-center justify-end gap-3 md:min-w-0 md:gap-3">
                         {/* Search - Desktop only */}
                         <div className="relative hidden h-10 w-10 shrink-0 overflow-visible md:inline-flex">

@@ -28,6 +28,16 @@ export const removeItem = async (cartItemId) => {
     }
 }
 
+export const clearCartApi = async () => {
+    try {
+        const response = await api.delete('/clear');
+        return response.data;
+    } catch (error) {
+        console.error('Error clearing cart:', error);
+        throw error;
+    }
+}
+
 export const updateItem = async (cartItemId, quantity) => {
     try {
         const response = await api.put(`/update/${cartItemId}`, {
@@ -46,6 +56,35 @@ export const getCart = async () => {
         return response.data;
     } catch (error) {
         console.error('Error fetching cart:', error);
+        throw error;
+    }
+}
+
+export const createorder = async (amount, currency) => {
+    try {
+        const response = await api.post('/payment/create-order', {
+            amount,
+            currency: currency || "INR"
+        });
+        return response.data;
+
+    } catch (error) {
+
+        console.error('Error creating order:', error);
+        throw error;
+    }
+}
+export const verifyPayment = async ({ razorpay_order_id, razorpay_payment_id, razorpay_signature }) => {
+    try {
+        const response = await api.post('/payment/verify', {
+            razorpay_order_id,
+            razorpay_payment_id,
+            razorpay_signature
+        });
+        return response.data;
+    }
+    catch (error) {
+        console.error('Error verifying payment:', error);
         throw error;
     }
 }
