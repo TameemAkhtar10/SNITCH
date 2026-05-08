@@ -4,7 +4,7 @@ import axios from 'axios';
 import html2canvas from 'html2canvas';
 
 const orderApi = axios.create({
-  baseURL: 'http://localhost:3000/api/orders',
+  baseURL: 'https://snitch-aukv.onrender.com/api/orders',
   withCredentials: true,
 });
 

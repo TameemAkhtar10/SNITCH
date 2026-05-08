@@ -126,7 +126,7 @@ export const googleCallback = async (req, res) => {
         });
 
         const redirectTo = req.query.state || '/home'
-        return res.redirect(`http://localhost:5173/auth/google/success?token=${token}&redirectTo=${encodeURIComponent(redirectTo)}`);
+        return res.redirect(`https://snitch-aukv.onrender.com/auth/google/success?token=${token}&redirectTo=${encodeURIComponent(redirectTo)}`);
     } catch (error) {
         console.log(error)
         return res.status(500).json({ success: false, message: 'Internal server error', data: {} })

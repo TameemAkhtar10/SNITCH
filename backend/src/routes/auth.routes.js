@@ -18,7 +18,7 @@ router.get('/google', (req, res, next) => {
 });
 router.get(
     '/google/callback',
-    passport.authenticate('google', { failureRedirect: 'http://localhost:5173/login', session: false }),
+    passport.authenticate('google', { failureRedirect: 'https://snitch-aukv.onrender.com/login', session: false }),
     googleCallback
 );
 router.get('/me', authenticateUser, getmecontroller);

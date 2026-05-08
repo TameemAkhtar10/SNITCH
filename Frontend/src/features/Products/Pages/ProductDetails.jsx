@@ -350,7 +350,7 @@ const ProductDetails = () => {
         try {
             setDeliveryLoading(true)
             setDeliveryError('')
-            const response = await axios.get(`http://localhost:3000/api/delivery/check/${pincode}`, { withCredentials: true })
+            const response = await axios.get(`hhttps://snitch-aukv.onrender.com/api/delivery/check/${pincode}`, { withCredentials: true })
             const data = response?.data
             const maxDays = Number(String(data?.estimatedDeliveryDays || '').split('-')?.[1]?.replace(' days', '')) || 5
             const estimatedDate = new Date()

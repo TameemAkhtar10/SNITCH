@@ -39,7 +39,7 @@ const Register = () => {
     const handleGoogleAuth = () => {
         setError("");
         const redirectTo = encodeURIComponent(location.state?.from?.pathname || '/home')
-        window.location.href = `http://localhost:3000/api/auth/google?redirectTo=${redirectTo}`;
+        window.location.href = `https://snitch-aukv.onrender.com/api/auth/google?redirectTo=${redirectTo}`;
     };
 
     const handleChange = (event) => {
