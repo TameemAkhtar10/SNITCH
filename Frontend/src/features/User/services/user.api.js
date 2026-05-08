@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: 'http://localhost:3000/api/user',
+  baseURL: 'https://snitch-aukv.onrender.com/api/user',
   withCredentials: true,
 })
 

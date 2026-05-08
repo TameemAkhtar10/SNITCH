@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-    baseURL: 'http://localhost:3000/api/reviews',
+    baseURL: 'https://snitch-aukv.onrender.com/api/reviews',
     withCredentials: true
 })
 

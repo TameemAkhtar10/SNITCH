@@ -1,6 +1,6 @@
 import axios from "axios";
 const api = axios.create({
-    baseURL: 'http://localhost:3000/api/cart',
+    baseURL: 'https://snitch-aukv.onrender.com/api/cart',
     withCredentials: true,
 })
 
