@@ -83,7 +83,7 @@ const Home = () => {
                 if (selectedCategory && selectedCategory !== 'All Products') params.category = selectedCategory
                 if (minPrice) params.minPrice = minPrice
                 if (maxPrice) params.maxPrice = maxPrice
-                
+
                 await handleGetAllProducts(params)
             } catch (error) {
                 console.log(error)
@@ -203,7 +203,7 @@ const Home = () => {
 
     const filteredProducts = products || []
 
-    const categories = ['All Products', 'Electronics', 'Fashion', 'Books', 'Home & Garden']
+    const categories = ['All Products', 'Men', 'Women', 'Kids', 'Accessories', 'Seasonal']
 
     const { isDark, toggleDark } = useDarkMode()
 
@@ -370,7 +370,7 @@ const Home = () => {
                                 <button onClick={() => { setProfileMenuOpen(false); navigate('/profile'); }} className="px-4 py-2 text-xs uppercase tracking-widest premium-text-muted hover:text-[var(--text-primary)] text-left transition-colors">
                                     Profile
                                 </button>
-                                <button onClick={() => { 
+                                <button onClick={() => {
                                     navigate('/orders'); setProfileMenuOpen(false);
                                 }} className="px-4 py-2 text-xs uppercase tracking-widest premium-text-muted hover:text-[var(--text-primary)] text-left transition-colors">
                                     Purchase History
@@ -412,51 +412,67 @@ const Home = () => {
                     </div>
                 </div>
 
-                <div className="mx-auto max-w-[1600px] px-6 sm:px-12 py-20">
-                    <div className="flex flex-col gap-8 mb-12">
-                        {/* Category Filter */}
-                        <div className="flex flex-wrap gap-6 justify-center">
-                            {categories.map((category, idx) => (
-                                <button
-                                    key={idx}
-                                    className={`text-[10px] uppercase tracking-[0.2em] transition-all pb-1 border-b ${selectedCategory === category ? 'border-[var(--text-primary)] premium-text' : 'border-transparent premium-text-muted hover:text-[var(--text-primary)]'}`}
-                                    onClick={() => setSelectedCategory(category)}
-                                >
-                                    {category}
-                                </button>
-                            ))}
-                        </div>
+                <div className="mx-auto max-w-[1600px] px-6 sm:px-12 py-16">
+                    <div className="border border-[var(--border)]  rounded-[12px] p-8 sm:p-10 mb-16 shadow-lg transition-all duration-500">
+                        <div className="flex flex-col gap-4">
+                            {/* Filter Header */}
+                            <div className="flex items-center justify-between">
+                                <div>
 
-                        {/* Price Filter */}
-                        <div className="flex flex-col sm:flex-row gap-6 items-center justify-center">
-                            <div className="flex items-center gap-4">
-                                <label className="text-[10px] uppercase tracking-[0.2em] premium-text-muted">Min Price</label>
-                                <input
-                                    type="number"
-                                    value={minPrice}
-                                    onChange={(e) => setMinPrice(e.target.value)}
-                                    placeholder="0"
-                                    className="input-premium w-32 py-2 text-sm font-light"
-                                />
+                                    <h3 className="font-playfair text-lg font-medium">Filter Pieces</h3>
+                                </div>
+                                {(minPrice || maxPrice || selectedCategory !== 'All Products') && (
+                                    <button
+                                        onClick={() => {
+                                            setMinPrice('');
+                                            setMaxPrice('');
+                                            setSelectedCategory('All Products');
+                                        }}
+                                        className="text-[9px] uppercase tracking-[0.2em] text-[var(--accent)] hover:text-[var(--text-primary)] transition-colors border border-[var(--accent)] px-3 py-1.5 rounded-[6px] hover:border-[var(--text-primary)]"
+                                    >
+                                        Reset All
+                                    </button>
+                                )}
                             </div>
-                            <div className="flex items-center gap-4">
-                                <label className="text-[10px] uppercase tracking-[0.2em] premium-text-muted">Max Price</label>
-                                <input
-                                    type="number"
-                                    value={maxPrice}
-                                    onChange={(e) => setMaxPrice(e.target.value)}
-                                    placeholder="9999999"
-                                    className="input-premium w-32 py-2 text-sm font-light"
-                                />
+
+                            {/* Category Filter */}
+                            <div className="flex flex-col gap-3">
+
+                                <div className="flex flex-wrap gap-3">
+
+                                </div>
                             </div>
-                            {(minPrice || maxPrice) && (
-                                <button
-                                    onClick={() => { setMinPrice(''); setMaxPrice(''); }}
-                                    className="text-[10px] uppercase tracking-[0.2em] text-[var(--accent)] hover:underline"
-                                >
-                                    Clear
-                                </button>
-                            )}
+
+                            {/* Price Filter */}
+                            <div className="flex flex-col gap-3">
+                                <label className="text-[9px] uppercase tracking-[0.2em] premium-text-muted font-medium">Price Range</label>
+                                <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+                                    <div className="flex-1 flex flex-col gap-2">
+                                        <span className="text-[8px] uppercase tracking-[0.15em] premium-text-muted">From</span>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                value={minPrice}
+                                                onChange={(e) => setMinPrice(e.target.value)}
+                                                placeholder="₹0"
+                                                className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-[8px] px-4 py-3 text-sm font-light premium-text placeholder-[var(--text-secondary)] transition-all duration-300 focus:outline-none focus:border-[var(--accent)] focus:shadow-md"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 flex flex-col gap-2">
+                                        <span className="text-[8px] uppercase tracking-[0.15em] premium-text-muted">To</span>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                value={maxPrice}
+                                                onChange={(e) => setMaxPrice(e.target.value)}
+                                                placeholder="₹999999"
+                                                className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-[8px] px-4 py-3 text-sm font-light premium-text placeholder-[var(--text-secondary)] transition-all duration-300 focus:outline-none focus:border-[var(--accent)] focus:shadow-md"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

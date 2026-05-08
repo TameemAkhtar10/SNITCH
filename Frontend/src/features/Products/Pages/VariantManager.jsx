@@ -9,7 +9,7 @@ const VariantManager = ({ productId, onVariantAdded }) => {
         stock: '',
         priceAmount: '',
         priceCurrency: 'INR',
-        size: '',
+        sizesInput: '',
         color: '',
     })
 
@@ -32,18 +32,30 @@ const VariantManager = ({ productId, onVariantAdded }) => {
         e.preventDefault()
         clearMessages()
         try {
+            const normalizedSizes = [...new Set(
+                String(formData.sizesInput || '')
+                    .split(',')
+                    .map((size) => size.trim())
+                    .filter(Boolean)
+            )]
+
+            if (normalizedSizes.length === 0) {
+                return
+            }
+
             const formDataToSend = new FormData()
             formDataToSend.append('stock', formData.stock)
             formDataToSend.append('priceAmount', formData.priceAmount)
             formDataToSend.append('priceCurrency', formData.priceCurrency)
-            if (formData.size) formDataToSend.append('size', formData.size)
+            formDataToSend.append('sizes', JSON.stringify(normalizedSizes))
+            formDataToSend.append('size', normalizedSizes[0])
             if (formData.color) formDataToSend.append('color', formData.color)
             variantImages.forEach((file) => formDataToSend.append('files', file))
 
             const response = await addVariant(productId, formDataToSend)
 
             if (response) {
-                setFormData({ stock: '', priceAmount: '', priceCurrency: 'INR', size: '', color: '' })
+                setFormData({ stock: '', priceAmount: '', priceCurrency: 'INR', sizesInput: '', color: '' })
                 setVariantImages([])
                 setImagePreviews([])
                 setShowForm(false)
@@ -125,15 +137,17 @@ const VariantManager = ({ productId, onVariantAdded }) => {
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                         <div>
-                            <label className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-3 block">Size</label>
+                            <label className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-3 block">Sizes</label>
                             <input
                                 type="text"
-                                name="size"
-                                value={formData.size}
+                                name="sizesInput"
+                                value={formData.sizesInput}
                                 onChange={handleInputChange}
                                 className="vm-input"
                                 placeholder="e.g. S, M, L, XL"
+                                required
                             />
+                            <p className="mt-2 text-[9px] uppercase tracking-[0.15em] premium-text-muted">Use comma to add multiple sizes</p>
                         </div>
 
                         <div>

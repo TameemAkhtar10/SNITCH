@@ -12,8 +12,9 @@ const upload = multer({
 
 // Specific routes should come before generic :id route
 router.get('/seller', authenticateUser, getSellerProducts);
-router.post('/', upload.array('files', 7), authenticateUser, validateCreateProduct, createproductcontroller);
-router.put('/:id', upload.array('files', 7), authenticateUser, authenticateSeller, validateUpdateProduct, updateproductcontroller);
+// Use upload.any() so multiple fieldnames (e.g. 'files' and 'variantFiles_0') are accepted
+router.post('/', upload.any(), authenticateUser, validateCreateProduct, createproductcontroller);
+router.put('/:id', upload.any(), authenticateUser, authenticateSeller, validateUpdateProduct, updateproductcontroller);
 
 // Generic routes
 router.get('/', getAllProducts);

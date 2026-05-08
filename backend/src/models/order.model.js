@@ -19,6 +19,11 @@ const OrderItemSchema = new mongoose.Schema(
             type: String,
             default: '',
         },
+        size: {
+            type: String,
+            default: '',
+            trim: true,
+        },
         quantity: {
             type: Number,
             required: true,
@@ -77,6 +82,20 @@ const OrderSchema = new mongoose.Schema(
             type: String,
             default: null,
         },
+        deliveryAddress: {
+            name: String,
+            phone: String,
+            street: String,
+            city: String,
+            state: String,
+            pincode: String,
+            country: String
+        },
+        refundStatus: {
+            type: String,
+            enum: ['none', 'initiated', 'completed', 'failed'],
+            default: 'none'
+        }
     },
     {
         timestamps: { createdAt: true, updatedAt: false },

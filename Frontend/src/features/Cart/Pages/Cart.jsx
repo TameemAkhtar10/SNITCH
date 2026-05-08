@@ -86,12 +86,15 @@ const Cart = () => {
         .map((item) => {
             const product = item?.product || {}
             const variant = item?.variant || null
+            const attrs = variant?.attributes || {}
+            const size = item?.size || attrs?.size || attrs?.Size || (Array.isArray(attrs?.sizes) ? attrs.sizes[0] : null) || ''
 
             return {
                 productId: product?._id,
                 variantId: variant?._id || variant || null,
                 title: product?.title || item?.title || 'Item',
                 image: variant?.images?.[0]?.url || product?.images?.[0]?.url || item?.image || '',
+                size,
                 quantity: Number(item?.quantity || 1),
                 amount: Number(item?.amount || 0),
                 currency: item?.currency || currency,
@@ -357,9 +360,10 @@ const Cart = () => {
                                 const title = product?.title || 'Unknown Piece'
                                 const img = item?.variant?.images?.[0]?.url || product?.images?.[0]?.url
                                 const qty = Number(item?.quantity || 1)
-                                const amount = Number(item?.amount || 0)
+                                const unitAmount = Number(item?.amount || 0)
+                                const amount = Number(item?.lineTotal ?? unitAmount * qty)
                                 const currentPrice = Number(product?.price?.amount || 0)
-                                const priceDifference = amount - currentPrice
+                                const priceDifference = amount - (currentPrice * qty)
                                 const stock = Number(item?.stock ?? item?.variant?.stock ?? 0)
                                 const variant = item?.variant
                                 const attrs = variant?.attributes || null
@@ -404,6 +408,9 @@ const Cart = () => {
                                                     </div>
                                                 )}
                                                 <p className="text-base sm:text-lg font-light mb-1">{formatMoney(amount)}</p>
+                                                <p className="text-[10px] uppercase tracking-[0.15em] premium-text-muted mb-4">
+                                                    {formatMoney(unitAmount)} x {qty}
+                                                </p>
                                                 {currentPrice > amount ? (
                                                     <p className="text-[10px] uppercase tracking-widest text-(--danger) mb-4">Price increased</p>
                                                 ) : currentPrice < amount ? (
@@ -514,22 +521,50 @@ const Cart = () => {
                 {/* Address selection modal */}
                 {showAddressModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center">
-                        <div className="absolute inset-0 bg-black/50" onClick={() => setShowAddressModal(false)} />
-                        <div className="relative z-60 w-full max-w-2xl p-6 bg-white text-black rounded-lg">
-                            <h3 className="font-playfair text-xl mb-4">Select delivery address</h3>
-                            <div className="space-y-3 max-h-72 overflow-auto mb-4">
+                        <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" onClick={() => setShowAddressModal(false)} />
+                        <div className="relative z-60 w-full max-w-2xl border border-(--border) premium-surface premium-text rounded-3xl p-6 sm:p-8 shadow-2xl mx-4">
+                            <div className="flex items-start justify-between gap-4 mb-6 pb-4 border-b border-(--border)">
+                                <div>
+                                    <p className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-2">Delivery</p>
+                                    <h3 className="font-playfair text-2xl">Select delivery address</h3>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAddressModal(false)}
+                                    className="text-[10px] uppercase tracking-[0.2em] premium-text-muted hover:text-(--text-primary) transition-colors"
+                                >
+                                    Close
+                                </button>
+                            </div>
+
+                            <div className="space-y-3 max-h-72 overflow-auto mb-6 pr-1">
                                 {addressesList.map((addr) => (
-                                    <label key={addr._id} className={`block p-3 border rounded ${selectedAddress && selectedAddress._id === addr._id ? 'border-[var(--accent)] bg-[var(--bg-secondary)]' : 'border-[var(--border)]'}`}>
-                                        <input type="radio" name="address" onChange={() => setSelectedAddress(addr)} checked={selectedAddress?._id === addr._id} className="mr-2" />
-                                        <span className="font-medium">{addr.name}</span>
-                                        <div className="text-sm">{addr.street}, {addr.city}, {addr.state} - {addr.pincode}</div>
-                                        <div className="text-sm">{addr.phone}</div>
+                                    <label
+                                        key={addr._id}
+                                        className={`block cursor-pointer rounded-2xl border p-4 transition-all duration-300 ${selectedAddress && selectedAddress._id === addr._id
+                                            ? 'border-(--accent) bg-(--bg-primary) shadow-md'
+                                            : 'border-(--border) bg-(--bg-primary)/40 hover:border-(--text-primary)'
+                                            }`}
+                                    >
+                                        <div className="flex items-start gap-3">
+                                            <input type="radio" name="address" onChange={() => setSelectedAddress(addr)} checked={selectedAddress?._id === addr._id} className="mt-1 accent-(--accent)" />
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex items-center justify-between gap-3 mb-1">
+                                                    <span className="font-medium text-sm sm:text-base">{addr.name}</span>
+                                                    {addr.isDefault && (
+                                                        <span className="text-[9px] uppercase tracking-[0.15em] text-(--accent)">Default</span>
+                                                    )}
+                                                </div>
+                                                <div className="text-sm premium-text-muted leading-6">{addr.street}, {addr.city}, {addr.state} - {addr.pincode}</div>
+                                                <div className="text-sm premium-text-muted mt-1">{addr.phone}</div>
+                                            </div>
+                                        </div>
                                     </label>
                                 ))}
                             </div>
-                            <div className="flex gap-3 justify-end">
-                                <button className="btn-outline px-4 py-2" onClick={() => setShowAddressModal(false)}>Cancel</button>
-                                <button className="btn-accent px-4 py-2" onClick={() => {
+                            <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end">
+                                <button className="btn-outline px-4 py-3 text-xs uppercase tracking-[0.2em]" onClick={() => setShowAddressModal(false)}>Cancel</button>
+                                <button className="btn-accent px-4 py-3 text-xs uppercase tracking-[0.2em]" onClick={() => {
                                     if (!selectedAddress) { window.alert('Please select an address'); return }
                                     setShowAddressModal(false)
                                     handlecheckout(total, 'INR', selectedAddress)

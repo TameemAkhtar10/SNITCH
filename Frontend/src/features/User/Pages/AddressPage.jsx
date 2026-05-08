@@ -173,14 +173,14 @@ const AddressPage = () => {
         </div>
       </header>
 
-      <main className="mx-auto max-w-4xl px-6 py-12">
+      <main className="mx-auto max-w-4xl px-4 sm:px-6 py-12 sm:py-16">
         <div className="mb-12">
           <h1 className="font-playfair text-5xl mb-2">Saved Addresses</h1>
           <p className="text-xs uppercase tracking-[0.2em] premium-text-muted">Manage your delivery locations</p>
         </div>
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-          <div className="lg:col-span-2 premium-surface p-10 border border-[var(--border)]">
+        <div className="grid grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-3">
+          <div className="lg:col-span-2 premium-surface p-6 sm:p-10 border border-[var(--border)]">
             <h3 className="font-playfair text-xl mb-6">Your Addresses</h3>
             {loading ? <p className="premium-text-muted">Loading...</p> : (
               <div className="space-y-4">
@@ -209,7 +209,7 @@ const AddressPage = () => {
             )}
           </div>
 
-          <form onSubmit={handleAdd} className="premium-surface p-10 border border-[var(--border)] h-fit">
+          <form onSubmit={handleAdd} className="premium-surface p-6 sm:p-10 border border-[var(--border)] h-fit">
             <h3 className="font-playfair text-xl mb-6">Add New Address</h3>
             <div className="grid gap-4">
               <div>
@@ -224,7 +224,7 @@ const AddressPage = () => {
                 <label className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-2 block">Street</label>
                 <input name="street" value={form.street} onChange={handleChange} placeholder="Street address" required className="input-premium w-full py-2 text-sm font-light" />
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
                   <label className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-2 block">City</label>
                   <input name="city" value={form.city} onChange={handleChange} placeholder="City" required className="input-premium w-full py-2 text-sm font-light" />
@@ -234,7 +234,7 @@ const AddressPage = () => {
                   <input name="state" value={form.state} onChange={handleChange} placeholder="State" required className="input-premium w-full py-2 text-sm font-light" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
                   <label className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-2 block">Pincode</label>
                   <input name="pincode" value={form.pincode} onChange={handleChange} placeholder="Pincode" required className="input-premium w-full py-2 text-sm font-light" />

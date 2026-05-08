@@ -167,7 +167,7 @@ const Dashboard = () => {
                 </div>
             </header>
 
-            <main className="mx-auto max-w-[1600px] px-6 sm:px-12 py-16 lg:py-24">
+            <main className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-12 py-12 sm:py-16 lg:py-24">
                 <div className="mb-16">
                     <p className="text-[10px] uppercase tracking-[0.3em] premium-text-muted mb-4">Store Management</p>
                     <h1 className="font-playfair text-5xl lg:text-6xl font-medium leading-tight mb-4">
@@ -176,8 +176,8 @@ const Dashboard = () => {
                     <p className="text-sm font-light premium-text-muted">{sellerProducts?.length || 0} pieces in collection</p>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-16 border-b border-[var(--border)] pb-8">
-                    <div className="flex gap-8">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6 mb-12 sm:mb-16 border-b border-[var(--border)] pb-6 sm:pb-8">
+                    <div className="flex flex-wrap gap-4 sm:gap-8">
                         {['all', 'active', 'inactive'].map((f) => (
                             <button
                                 key={f}
@@ -211,16 +211,16 @@ const Dashboard = () => {
                     </div>
                 ) : sellerProducts && sellerProducts.length > 0 ? (
                     <>
-                        <div className="grid gap-8 mb-16 sm:grid-cols-3">
-                            <div className="premium-surface border border-[var(--border)] p-10 flex flex-col justify-center">
+                        <div className="grid gap-4 sm:gap-8 mb-12 sm:mb-16 grid-cols-1 sm:grid-cols-3">
+                            <div className="premium-surface border border-[var(--border)] p-6 sm:p-10 flex flex-col justify-center">
                                 <span className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-4">Total Assortment</span>
                                 <span className="font-playfair text-5xl font-medium">{sellerProducts.length}</span>
                             </div>
-                            <div className="premium-surface border border-[var(--border)] p-10 flex flex-col justify-center">
+                            <div className="premium-surface border border-[var(--border)] p-6 sm:p-10 flex flex-col justify-center">
                                 <span className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-4">Active Pieces</span>
                                 <span className="font-playfair text-5xl font-medium">{sellerProducts.filter((p) => p.status !== "inactive").length}</span>
                             </div>
-                            <div className="premium-surface border border-[var(--border)] p-10 flex flex-col justify-center">
+                            <div className="premium-surface border border-[var(--border)] p-6 sm:p-10 flex flex-col justify-center">
                                 <span className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-4">Portfolio Value</span>
                                 <span className="font-playfair text-5xl font-medium text-[var(--accent)]">
                                     ₹{sellerProducts.reduce((sum, p) => sum + (parseInt(p.price?.amount) || 0), 0).toLocaleString()}
@@ -228,7 +228,7 @@ const Dashboard = () => {
                             </div>
                         </div>
 
-                        <div className="grid gap-x-8 gap-y-16 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                        <div className="grid grid-cols-1 gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                             {filteredProducts.map((product) => (
                                 <div key={product._id} className="group cursor-pointer flex flex-col" onClick={() => navigate(`/seller/edit-product/${product._id}`)}>
                                     <div className="relative aspect-[3/4] w-full bg-[var(--bg-secondary)] overflow-hidden mb-6 border border-[var(--border)] rounded-[10px]">

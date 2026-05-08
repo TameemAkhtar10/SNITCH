@@ -15,6 +15,9 @@ const buildCartItemResponse = (item) => {
     const itemObj = item.toObject ? item.toObject() : item
     const product = itemObj.product
     const variantId = itemObj.variant ? String(itemObj.variant) : null
+    const unitAmount = toNumber(itemObj.amount, 0)
+    const quantity = toNumber(itemObj.quantity, 1)
+    const lineTotal = unitAmount * quantity
 
     if (!product || !variantId) {
         return {
@@ -24,6 +27,8 @@ const buildCartItemResponse = (item) => {
             productStock: null,
             variantStock: null,
             stock: 0,
+            unitAmount,
+            lineTotal,
         }
     }
 
@@ -38,6 +43,8 @@ const buildCartItemResponse = (item) => {
             productStock,
             variantStock: null,
             stock: productStock,
+            unitAmount,
+            lineTotal,
         }
     }
 
@@ -54,6 +61,8 @@ const buildCartItemResponse = (item) => {
         productStock,
         variantStock,
         stock,
+        unitAmount,
+        lineTotal,
     }
 }
 
@@ -103,7 +112,9 @@ export const addToCart = async (req, res) => {
                 { new: true }
             );
             const updatedCart = await Cartmodel.findOne({ user: req.user._id }).populate('items.product', 'stock variants images title description price');
-            return res.status(200).json({ success: true, message: 'Cart updated successfully', cart: updatedCart, items: updatedCart.items, data: { cart: updatedCart } });
+            const updatedCartObj = updatedCart.toObject();
+            updatedCartObj.items = (updatedCartObj.items || []).map((item) => buildCartItemResponse(item));
+            return res.status(200).json({ success: true, message: 'Cart updated successfully', cart: updatedCartObj, items: updatedCartObj.items, data: { cart: updatedCartObj } });
         } else {
             if (req.body.quantity > stock) {
                 return res.status(400).json({ success: false, message: `Only ${stock} items in stock`, data: {} });
@@ -117,7 +128,9 @@ export const addToCart = async (req, res) => {
             });
             await cart.save();
             const updatedCart = await Cartmodel.findOne({ user: req.user._id }).populate('items.product', 'stock variants images title description price');
-            return res.status(200).json({ success: true, message: 'Product added to cart successfully', cart: updatedCart, items: updatedCart.items, data: { cart: updatedCart } });
+            const updatedCartObj = updatedCart.toObject();
+            updatedCartObj.items = (updatedCartObj.items || []).map((item) => buildCartItemResponse(item));
+            return res.status(200).json({ success: true, message: 'Product added to cart successfully', cart: updatedCartObj, items: updatedCartObj.items, data: { cart: updatedCartObj } });
         }
     } catch (error) {
         console.error('Error adding to cart:', error);
@@ -222,7 +235,10 @@ export const removeCartItem = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Cart not found', data: {} });
         }
 
-        return res.status(200).json({ success: true, message: 'Item removed successfully', cart: updatedCart, data: { cart: updatedCart } });
+        const updatedCartObj = updatedCart.toObject();
+        updatedCartObj.items = (updatedCartObj.items || []).map((item) => buildCartItemResponse(item));
+
+        return res.status(200).json({ success: true, message: 'Item removed successfully', cart: updatedCartObj, data: { cart: updatedCartObj } });
     } catch (error) {
         console.error('Error removing cart item:', error);
         return res.status(500).json({ success: false, message: 'Internal server error', data: {} });
@@ -237,15 +253,18 @@ export const clearCart = async (req, res) => {
             { new: true, upsert: true }
         ).populate('items.product', 'stock variants images title description price');
 
+        const updatedCartObj = updatedCart.toObject();
+        updatedCartObj.items = [];
+
         return res.status(200).json({
             success: true,
             message: 'Cart cleared successfully',
-            cart: updatedCart,
+            cart: updatedCartObj,
             items: [],
             subtotal: 0,
             totalItems: 0,
             itemCount: 0,
-            data: { cart: updatedCart, items: [] },
+            data: { cart: updatedCartObj, items: [] },
         });
     } catch (error) {
         console.error('Error clearing cart:', error);
@@ -283,7 +302,7 @@ export const createOrderController = async (req, res) => {
                     variantId = item.variant,
                     quantity = item.quantity,
                     price = {
-                        amount: item.product.price.amount * item.quantity || item.product.price.amount * item.quantity,
+                        amount: Number(item.amount || item.product.price.amount || 0) * quantity,
                         currency: item.product.price.currency
                     },
 

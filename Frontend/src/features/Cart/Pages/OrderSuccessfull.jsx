@@ -353,11 +353,13 @@ const OrderSuccessfull = () => {
 
   const getItemTitle = (item) => item?.product?.title || item?.name || 'Item';
   const getItemImage = (item) => item?.variant?.images?.[0]?.url || item?.product?.images?.[0]?.url || item?.image || '';
-  const getItemPrice = (item) => Number(item?.amount || item?.price?.amount || item?.price || item?.product?.price?.amount || 0);
+  const getItemPrice = (item) => Number(item?.lineTotal ?? (Number(item?.amount || item?.price?.amount || item?.price || item?.product?.price?.amount || 0) * Number(item?.quantity || 1)));
   const getItemQty = (item) => Number(item?.quantity || 1);
+  const getItemSize = (item) => item?.size || item?.variant?.attributes?.size || item?.variant?.attributes?.Size || (Array.isArray(item?.variant?.attributes?.sizes) ? item.variant.attributes.sizes[0] : '') || '';
   const getItemMeta = (item) => {
     const attrs = item?.variant?.attributes || {};
-    return [attrs.color || attrs.Color, attrs.size || attrs.Size].filter(Boolean).join(' • ');
+    const size = getItemSize(item);
+    return [attrs.color || attrs.Color, size].filter(Boolean).join(' • ');
   };
 
   const themeStyles = isDark ? `
@@ -599,9 +601,10 @@ const OrderSuccessfull = () => {
                       <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 'normal', margin: '0', fontSize: '13px' }}>Item: {item.title}</div>
                         <div style={{ margin: '0', fontSize: '11px', color: '#555' }}>Qty: {item.quantity}</div>
+                        {item.size ? <div style={{ margin: '0', fontSize: '11px', color: '#555' }}>Size: {item.size}</div> : null}
                       </div>
                       <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                        <div style={{ fontWeight: 'normal', margin: '0', fontSize: '13px' }}>{billFormatMoney(item.amount)}</div>
+                        <div style={{ fontWeight: 'normal', margin: '0', fontSize: '13px' }}>{billFormatMoney(item.lineTotal ?? item.amount)}</div>
                       </div>
                     </div>
                   ))}

@@ -33,7 +33,7 @@ const CreateProduct = () => {
     const [variants, setVariants] = useState([]);
     const [newVariant, setNewVariant] = useState({
         color: "",
-        size: "",
+        sizesInput: "",
         stock: "",
         priceAmount: "",
         priceCurrency: "INR",
@@ -70,7 +70,14 @@ const CreateProduct = () => {
     };
 
     const handleAddVariant = () => {
-        if (!newVariant.color || !newVariant.size || !newVariant.stock || !newVariant.priceAmount) {
+        const normalizedSizes = [...new Set(
+            String(newVariant.sizesInput || '')
+                .split(',')
+                .map((size) => size.trim())
+                .filter(Boolean)
+        )]
+
+        if (!newVariant.color || normalizedSizes.length === 0 || !newVariant.stock || !newVariant.priceAmount) {
             setError("Please fill all variant fields");
             return;
         }
@@ -81,10 +88,10 @@ const CreateProduct = () => {
             return;
         }
 
-        setVariants([...variants, { ...newVariant, id: Date.now() }]);
+        setVariants([...variants, { ...newVariant, sizes: normalizedSizes, id: Date.now() }]);
         setNewVariant({
             color: "",
-            size: "",
+            sizesInput: "",
             stock: "",
             priceAmount: "",
             priceCurrency: "INR",
@@ -135,7 +142,8 @@ const CreateProduct = () => {
 
                     return {
                         color: v.color,
-                        size: v.size,
+                        size: v.sizes?.[0] || '',
+                        sizes: Array.isArray(v.sizes) ? v.sizes : [],
                         stock: parseInt(v.stock, 10),
                         priceAmount: parseFloat(v.priceAmount),
                         priceCurrency: v.priceCurrency,
@@ -279,7 +287,7 @@ const CreateProduct = () => {
                 </div>
             </header>
 
-            <main className="mx-auto max-w-4xl px-6 sm:px-12 py-16">
+            <main className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-12 py-12 sm:py-16">
                 <div className="mb-16 text-center">
                     <p className="text-[10px] uppercase tracking-[0.3em] premium-text-muted mb-4">Curator Studio</p>
                     <h1 className="font-playfair text-5xl lg:text-6xl font-medium leading-tight mb-4">
@@ -287,8 +295,8 @@ const CreateProduct = () => {
                     </h1>
                 </div>
 
-                <form onSubmit={handleSubmit} className="flex flex-col gap-12">
-                    <section className="premium-surface p-10 border border-[var(--border)]">
+                <form onSubmit={handleSubmit} className="flex flex-col gap-8 sm:gap-12">
+                    <section className="premium-surface p-6 sm:p-10 border border-[var(--border)]">
                         <h3 className="font-playfair text-2xl mb-8 border-b border-[var(--border)] pb-4">Essential Details</h3>
 
                         <div className="flex flex-col gap-8">
@@ -334,7 +342,7 @@ const CreateProduct = () => {
                         </div>
                     </section>
 
-                    <section className="premium-surface p-10 border border-[var(--border)]">
+                    <section className="premium-surface p-6 sm:p-10 border border-[var(--border)]">
                         <div className="flex justify-between items-center mb-8 border-b border-[var(--border)] pb-4">
                             <h3 className="font-playfair text-2xl">
                                 Variants <span className="text-sm font-light premium-text-muted ml-2">({variants.length})</span>
@@ -356,8 +364,9 @@ const CreateProduct = () => {
                                         <input type="text" name="color" value={newVariant.color} onChange={handleVariantChange} className="input-premium w-full py-2 text-sm font-light" placeholder="e.g. Obsidian" required />
                                     </div>
                                     <div>
-                                        <label className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-2 block">Size</label>
-                                        <input type="text" name="size" value={newVariant.size} onChange={handleVariantChange} className="input-premium w-full py-2 text-sm font-light" placeholder="e.g. M" required />
+                                        <label className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-2 block">Sizes</label>
+                                        <input type="text" name="sizesInput" value={newVariant.sizesInput} onChange={handleVariantChange} className="input-premium w-full py-2 text-sm font-light" placeholder="e.g. S, M, L, XL" required />
+                                        <p className="mt-2 text-[9px] uppercase tracking-[0.15em] premium-text-muted">Use comma to add multiple sizes</p>
                                     </div>
                                 </div>
 
@@ -421,7 +430,7 @@ const CreateProduct = () => {
                                     <div key={variant.id} className="border border-[var(--border)] bg-[var(--bg-primary)] p-6">
                                         <div className="flex justify-between items-start mb-4">
                                             <div>
-                                                <p className="font-playfair text-lg mb-1">{variant.color} — {variant.size}</p>
+                                                <p className="font-playfair text-lg mb-1">{variant.color} — {(variant.sizes || []).join(', ')}</p>
                                                 <p className="text-[10px] uppercase tracking-widest premium-text-muted">Stock: {variant.stock} | Price: {variant.priceCurrency} {variant.priceAmount}</p>
                                             </div>
                                             <button type="button" onClick={() => handleRemoveVariant(variant.id)} className="text-[10px] uppercase tracking-widest text-[var(--danger)] hover:underline underline-offset-4 transition-colors">
@@ -444,7 +453,7 @@ const CreateProduct = () => {
                         )}
                     </section>
 
-                    <section className="premium-surface p-10 border border-[var(--border)]">
+                    <section className="premium-surface p-6 sm:p-10 border border-[var(--border)]">
                         <h3 className="font-playfair text-2xl mb-8 border-b border-[var(--border)] pb-4">
                             Media <span className="text-xs font-light premium-text-muted">*Required</span>
                         </h3>

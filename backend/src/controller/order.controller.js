@@ -1,5 +1,8 @@
 import mongoose from 'mongoose';
+import Razorpay from 'razorpay';
+import config from '../config/config.js';
 import OrderModel from '../models/order.model.js';
+import productModel from '../models/product.model.js';
 
 const toNumber = (value) => {
     const parsed = Number(value);
@@ -11,6 +14,7 @@ const normalizeItem = (item) => ({
     variantId: item?.variantId || null,
     title: item?.title,
     image: item?.image || '',
+    size: item?.size || '',
     quantity: toNumber(item?.quantity),
     amount: toNumber(item?.amount),
     currency: item?.currency || 'INR',
@@ -40,7 +44,7 @@ function buildBillFromOrder(order, customerName) {
         billNumber: `SN-${Date.now()}-${Math.floor(Math.random() * 900 + 100)}`,
         billDate: new Date().toISOString(),
         customerName: customerName || 'Guest',
-        items: order.items.map(i => ({ title: i.title, quantity: i.quantity, amount: i.amount, currency: i.currency })),
+        items: order.items.map(i => ({ title: i.title, quantity: i.quantity, amount: i.amount, currency: i.currency, size: i.size || '' })),
         subtotal,
         shipping,
         total,
@@ -52,7 +56,7 @@ function buildBillFromOrder(order, customerName) {
 
 export const createOrder = async (req, res) => {
     try {
-        const { items, totalAmount, currency, paymentId, razorpayOrderId } = req.body;
+        const { items, totalAmount, currency, paymentId, razorpayOrderId, deliveryAddress } = req.body;
 
         if (!Array.isArray(items) || items.length === 0) {
             return res.status(400).json({ success: false, message: 'Order items are required', data: {} });
@@ -89,7 +93,26 @@ export const createOrder = async (req, res) => {
             currency: currency || 'INR',
             paymentId: paymentId || null,
             razorpayOrderId: razorpayOrderId || null,
+            deliveryAddress: deliveryAddress || {},
+            refundStatus: 'none'
         });
+
+        // Decrement stock for each item
+        Promise.all(order.items.map(async (item) => {
+            try {
+                const product = await productModel.findById(item.productId);
+                if (!product) return;
+                if (item.variantId && String(item.variantId) !== String(item.productId)) {
+                    const variant = product.variants.id(item.variantId);
+                    if (variant) variant.stock = Math.max(0, variant.stock - item.quantity);
+                } else {
+                    product.stock = Math.max(0, product.stock - item.quantity);
+                }
+                await product.save();
+            } catch (stockError) {
+                console.log('Error updating stock:', stockError);
+            }
+        })).catch(err => console.log('Stock update batch error:', err));
 
         return res.status(201).json({
             success: true,
@@ -190,7 +213,37 @@ export const cancelOrder = async (req, res) => {
         }
 
         order.status = 'cancelled';
+        // Initiate refund if paymentId present
+        if (order.paymentId) {
+            try {
+                const razorpay = new Razorpay({ key_id: config.RAZORPAY_KEY_ID, key_secret: config.RAZORPAY_KEY_SECRET });
+                const refundAmount = Math.round((order.totalAmount || 0) * 100);
+                await razorpay.payments.refund(order.paymentId, { amount: refundAmount });
+                order.refundStatus = 'initiated';
+            } catch (refundError) {
+                console.error('Error initiating refund:', refundError);
+                order.refundStatus = 'failed';
+            }
+        }
+
         await order.save();
+
+        // Restore stock for each item
+        Promise.all(order.items.map(async (item) => {
+            try {
+                const product = await productModel.findById(item.productId);
+                if (!product) return;
+                if (item.variantId && String(item.variantId) !== String(item.productId)) {
+                    const variant = product.variants.id(item.variantId);
+                    if (variant) variant.stock += item.quantity;
+                } else {
+                    product.stock += item.quantity;
+                }
+                await product.save();
+            } catch (stockError) {
+                console.log('Error restoring stock:', stockError);
+            }
+        })).catch(err => console.log('Stock restore batch error:', err));
 
         return res.status(200).json({
             success: true,

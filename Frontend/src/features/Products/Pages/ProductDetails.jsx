@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import axios from 'axios'
@@ -77,6 +77,7 @@ const ProductDetails = () => {
     const [currentImageIndex, setCurrentImageIndex] = React.useState(0)
     const [variantImageIndex, setVariantImageIndex] = React.useState({})
     const [selectedVariantIndex, setSelectedVariantIndex] = React.useState(null)
+    const [selectedSizeOption, setSelectedSizeOption] = React.useState(null)
     const [cartLoading, setCartLoading] = React.useState(false)
     const [cartMessage, setCartMessage] = React.useState("")
     const [wishlistLoading, setWishlistLoading] = React.useState(false)
@@ -91,7 +92,7 @@ const ProductDetails = () => {
 
     const { isDark, toggleDark } = useDarkMode()
 
-    const getVariantAttr = (variant, key) => {
+    const getVariantAttr = useCallback((variant, key) => {
         const attributes = variant?.attributes
         if (!attributes) return undefined
 
@@ -118,9 +119,35 @@ const ProductDetails = () => {
             return kLower === keyLower || (keyLower && kLower.includes(keyLower))
         })
         return matchKey ? attributes[matchKey] : undefined
-    }
+    }, [])
 
-    const variants = Array.isArray(product?.variants) ? product.variants : []
+    const getVariantSizes = useCallback((variant) => {
+        const rawSizes = getVariantAttr(variant, 'sizes')
+        const fallbackSize = getVariantAttr(variant, 'size')
+
+        if (Array.isArray(rawSizes)) {
+            return [...new Set(rawSizes.map((s) => String(s || '').trim()).filter(Boolean))]
+        }
+
+        if (typeof rawSizes === 'string' && rawSizes.trim()) {
+            try {
+                const parsed = JSON.parse(rawSizes)
+                if (Array.isArray(parsed)) {
+                    return [...new Set(parsed.map((s) => String(s || '').trim()).filter(Boolean))]
+                }
+            } catch {
+                return [...new Set(rawSizes.split(',').map((s) => s.trim()).filter(Boolean))]
+            }
+        }
+
+        if (fallbackSize !== undefined && fallbackSize !== null && String(fallbackSize).trim()) {
+            return [String(fallbackSize).trim()]
+        }
+
+        return []
+    }, [getVariantAttr])
+
+    const variants = useMemo(() => (Array.isArray(product?.variants) ? product.variants : []), [product?.variants])
     const selectedVariant = selectedVariantIndex !== null ? variants?.[selectedVariantIndex] : null
 
     const displayedPrice = selectedVariant?.price?.amount ?? product?.price?.amount
@@ -132,19 +159,19 @@ const ProductDetails = () => {
     )
 
     const availableSizes = Array.from(
-        new Set(variants.map(v => getVariantAttr(v, 'size')).filter(Boolean))
+        new Set(variants.flatMap((v) => getVariantSizes(v)).filter(Boolean))
     )
 
     const selectedColor = selectedVariant ? getVariantAttr(selectedVariant, 'color') : null
-    const selectedSize = selectedVariant ? getVariantAttr(selectedVariant, 'size') : null
+    const selectedSize = selectedSizeOption || (selectedVariant ? getVariantSizes(selectedVariant)[0] : null)
 
     const chooseVariantIndex = ({ color, size }) => {
         if (!variants.length) return null
 
         const exact = variants.findIndex(v => {
             const vColor = getVariantAttr(v, 'color')
-            const vSize = getVariantAttr(v, 'size')
-            return (color ? vColor === color : true) && (size ? vSize === size : true)
+            const vSizes = getVariantSizes(v)
+            return (color ? vColor === color : true) && (size ? vSizes.includes(size) : true)
         })
         if (exact !== -1) return exact
 
@@ -154,7 +181,7 @@ const ProductDetails = () => {
         }
 
         if (size) {
-            const bySize = variants.findIndex(v => getVariantAttr(v, 'size') === size)
+            const bySize = variants.findIndex(v => getVariantSizes(v).includes(size))
             if (bySize !== -1) return bySize
         }
 
@@ -162,7 +189,7 @@ const ProductDetails = () => {
     }
 
     const handleSelectColor = (color) => {
-        const nextIndex = chooseVariantIndex({ color, size: selectedSize })
+        const nextIndex = chooseVariantIndex({ color, size: selectedSizeOption || selectedSize })
         if (nextIndex === null) return
         setSelectedVariantIndex(nextIndex)
         setVariantImageIndex(prev => ({ ...prev, [nextIndex]: 0 }))
@@ -171,9 +198,33 @@ const ProductDetails = () => {
     const handleSelectSize = (size) => {
         const nextIndex = chooseVariantIndex({ color: selectedColor, size })
         if (nextIndex === null) return
+        setSelectedSizeOption(size)
         setSelectedVariantIndex(nextIndex)
         setVariantImageIndex(prev => ({ ...prev, [nextIndex]: 0 }))
     }
+
+    const handleClearSelection = () => {
+        setSelectedVariantIndex(null)
+        setSelectedSizeOption(null)
+        setCurrentImageIndex(0)
+    }
+
+    useEffect(() => {
+        if (selectedVariantIndex === null) {
+            if (selectedSizeOption !== null) setSelectedSizeOption(null)
+            return
+        }
+
+        const sizesForSelectedVariant = getVariantSizes(selectedVariant)
+        if (sizesForSelectedVariant.length === 0) {
+            if (selectedSizeOption !== null) setSelectedSizeOption(null)
+            return
+        }
+
+        if (!selectedSizeOption || !sizesForSelectedVariant.includes(selectedSizeOption)) {
+            setSelectedSizeOption(sizesForSelectedVariant[0])
+        }
+    }, [selectedVariantIndex, selectedVariant, selectedSizeOption, variants, getVariantSizes])
 
     const activeImages = (selectedVariant?.images?.length ? selectedVariant.images : product?.images) || []
     const activeImageIndex = selectedVariantIndex !== null
@@ -213,6 +264,7 @@ const ProductDetails = () => {
     useEffect(() => {
         handleGetProductById(productId)
         setSelectedVariantIndex(null)
+        setSelectedSizeOption(null)
         setCurrentImageIndex(0)
         setVariantImageIndex({})
         return () => {
@@ -524,9 +576,9 @@ const ProductDetails = () => {
                 </div>
             </header>
 
-            <main className="mx-auto max-w-[1400px] px-6 py-12 lg:py-24">
-                <div className="flex flex-col lg:flex-row gap-16 lg:gap-24">
-                    <div className="flex-1 flex gap-6 lg:gap-8 lg:sticky lg:top-32 h-fit">
+            <main className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-10 sm:py-12 lg:py-24">
+                <div className="flex flex-col lg:flex-row gap-10 lg:gap-24">
+                    <div className="flex-1 flex gap-4 sm:gap-6 lg:gap-8 lg:sticky lg:top-32 h-fit">
                         {activeImages && activeImages.length > 1 && (
                             <div className="hidden lg:flex flex-col gap-4 w-20 shrink-0">
                                 {activeImages.map((img, idx) => (
@@ -579,7 +631,7 @@ const ProductDetails = () => {
                         </div>
                     </div>
 
-                    <div className="flex-1 flex flex-col max-w-xl">
+                    <div className="flex-1 flex flex-col w-full max-w-xl">
                         <div className="mb-8">
                             <div className="flex justify-between items-start">
                                 <div>
@@ -611,8 +663,19 @@ const ProductDetails = () => {
                             <div className="flex flex-col gap-8 mb-10">
                                 {availableColors.length > 0 && (
                                     <div>
-                                        <div className="flex justify-between mb-4">
-                                            <p className="text-[10px] uppercase tracking-[0.15em] premium-text-muted">Color</p>
+                                        <div className="flex items-center justify-between gap-3 mb-4">
+                                            <div className="flex items-center gap-3">
+                                                <p className="text-[10px] uppercase tracking-[0.15em] premium-text-muted">Color</p>
+                                                {selectedVariantIndex !== null && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleClearSelection}
+                                                        className="text-[9px] uppercase tracking-[0.18em] premium-text-muted hover:text-[var(--text-primary)] transition-colors"
+                                                    >
+                                                        × Clear
+                                                    </button>
+                                                )}
+                                            </div>
                                             <span className="text-[10px] uppercase tracking-[0.1em]">{selectedColor}</span>
                                         </div>
                                         <div className="flex flex-wrap gap-3">
@@ -631,9 +694,20 @@ const ProductDetails = () => {
 
                                 {availableSizes.length > 0 && (
                                     <div>
-                                        <div className="flex justify-between mb-4">
-                                            <p className="text-[10px] uppercase tracking-[0.15em] premium-text-muted">Size</p>
-                                            <button className="text-[10px] uppercase tracking-[0.1em] underline underline-offset-4 premium-text-muted hover:text-[var(--text-primary)]">Size Guide</button>
+                                        <div className="flex items-center justify-between gap-3 mb-4">
+                                            <div className="flex items-center gap-3">
+                                                <p className="text-[10px] uppercase tracking-[0.15em] premium-text-muted">Size</p>
+                                                {selectedVariantIndex !== null && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleClearSelection}
+                                                        className="text-[9px] uppercase tracking-[0.18em] premium-text-muted hover:text-[var(--text-primary)] transition-colors"
+                                                    >
+                                                        × Clear
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <button type="button" className="text-[10px] uppercase tracking-[0.1em] underline underline-offset-4 premium-text-muted hover:text-[var(--text-primary)]">Size Guide</button>
                                         </div>
                                         <div className="flex flex-wrap gap-3">
                                             {availableSizes.map((s) => (
@@ -675,8 +749,8 @@ const ProductDetails = () => {
                             </div>
                         )}
 
-                        <div className="flex items-center justify-between mb-10">
-                            <div className="flex items-center border border-[var(--border)] px-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-10">
+                            <div className="flex items-center border border-[var(--border)] px-2 w-fit">
                                 <button className="px-4 py-3 premium-text-muted hover:text-[var(--text-primary)] transition-colors" onClick={() => setQuantity(Math.max(1, quantity - 1))}>−</button>
                                 <span className="w-8 text-center text-sm font-medium">{quantity}</span>
                                 <button className="px-4 py-3 premium-text-muted hover:text-[var(--text-primary)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed" onClick={() => setQuantity(Math.min(displayedStock || 99, quantity + 1))} disabled={quantity >= (displayedStock || 99)}>+</button>
@@ -755,7 +829,7 @@ const ProductDetails = () => {
                     </div>
                 </div>
 
-                <section className="mt-32 pt-16 border-t border-[var(--border)]">
+                <section className="mt-20 sm:mt-32 pt-12 sm:pt-16 border-t border-[var(--border)]">
                     <div className="flex flex-col lg:flex-row gap-16">
                         <div className="w-full lg:w-1/3">
                             <h2 className="font-playfair text-3xl mb-2">Reflections</h2>

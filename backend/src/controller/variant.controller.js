@@ -8,6 +8,31 @@ const imagekit = new ImageKit({
     urlEndpoint: 'https://ik.imagekit.io/4kqj6c9g0',
 });
 
+const normalizeSizes = (rawSizes, fallbackSize) => {
+    let sizes = [];
+
+    if (Array.isArray(rawSizes)) {
+        sizes = rawSizes;
+    } else if (typeof rawSizes === 'string' && rawSizes.trim()) {
+        try {
+            const parsed = JSON.parse(rawSizes);
+            sizes = Array.isArray(parsed) ? parsed : [];
+        } catch {
+            sizes = rawSizes.split(',');
+        }
+    }
+
+    if (!sizes.length && fallbackSize !== undefined && fallbackSize !== null && String(fallbackSize).trim()) {
+        sizes = [fallbackSize];
+    }
+
+    return [...new Set(
+        sizes
+            .map((s) => String(s || '').trim())
+            .filter(Boolean)
+    )];
+};
+
 export const addVariant = async (req, res) => {
     try {
         const { productId } = req.params;
@@ -51,6 +76,16 @@ export const addVariant = async (req, res) => {
                 }
             }
         }
+        const attributes = {};
+        const parsedSizes = normalizeSizes(req.body.sizes || req.body['attributes[sizes]'], req.body['attributes[size]'] || req.body.size);
+        if (parsedSizes.length > 0) {
+            attributes['size'] = parsedSizes[0];
+            attributes['sizes'] = parsedSizes;
+        }
+        if (req.body['attributes[color]'] || req.body.color) {
+            attributes['color'] = req.body['attributes[color]'] || req.body.color;
+        }
+
         const newVariant = {
             stock: parseInt(stock),
             price: {
@@ -58,6 +93,7 @@ export const addVariant = async (req, res) => {
                 currency: priceCurrency,
             },
             images: uploadedImages.length > 0 ? uploadedImages : [],
+            attributes: Object.keys(attributes).length > 0 ? attributes : undefined,
         };
         product.variants.push(newVariant);
         await product.save();
@@ -153,6 +189,18 @@ export const updateVariant = async (req, res) => {
         if (priceCurrency) product.variants[variantIndex].price.currency = priceCurrency;
         if (uploadedImages.length > 0) {
             product.variants[variantIndex].images = uploadedImages;
+        }
+        const attributes = {};
+        const parsedSizes = normalizeSizes(req.body.sizes || req.body['attributes[sizes]'], req.body['attributes[size]'] || req.body.size);
+        if (parsedSizes.length > 0) {
+            attributes['size'] = parsedSizes[0];
+            attributes['sizes'] = parsedSizes;
+        }
+        if (req.body['attributes[color]'] || req.body.color) {
+            attributes['color'] = req.body['attributes[color]'] || req.body.color;
+        }
+        if (Object.keys(attributes).length > 0) {
+            product.variants[variantIndex].attributes = attributes;
         }
 
         await product.save();

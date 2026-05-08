@@ -64,6 +64,8 @@ const OrderDetail = () => {
         return statusIndexMap[order.status] ?? 0;
     }, [order?.status]);
 
+    const getItemSize = (item) => item?.size || item?.variant?.attributes?.size || item?.variant?.attributes?.Size || (Array.isArray(item?.variant?.attributes?.sizes) ? item.variant.attributes.sizes[0] : '') || '';
+
     const handleCancel = async () => {
         if (!order?._id) return;
         const ok = window.confirm('Cancel this order?');
@@ -196,6 +198,11 @@ const OrderDetail = () => {
                                                     <p className="mt-1 text-sm text-(--text-secondary)">
                                                         Qty: {item?.quantity || 0}
                                                     </p>
+                                                    {getItemSize(item) && (
+                                                        <p className="mt-1 text-sm text-(--text-secondary)">
+                                                            Size: {getItemSize(item)}
+                                                        </p>
+                                                    )}
                                                 </div>
                                                 <p className="text-sm font-medium text-(--text-primary)">
                                                     {currencyFormatter(item?.amount, item?.currency)}

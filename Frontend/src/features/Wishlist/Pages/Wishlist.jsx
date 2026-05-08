@@ -162,7 +162,7 @@ const Wishlist = () => {
                         {wishlistItems.length} {wishlistItems.length === 1 ? 'Item' : 'Items'}
                     </span>
                     <button
-                        onClick={()=> {
+                        onClick={() => {
                             toggleDark()
                         }}
                         aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -183,7 +183,7 @@ const Wishlist = () => {
             </header>
 
             <main className="min-h-screen">
-                <div className="mx-auto max-w-[1600px] px-6 sm:px-12 py-20">
+                <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-12 py-12 sm:py-20">
                     <div className="mb-16 border-b border-[var(--border)] pb-8">
                         <p className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-4">Personal Collection</p>
                         <h1 className="font-playfair text-5xl sm:text-6xl mb-4">Your Wishlist</h1>
@@ -208,7 +208,7 @@ const Wishlist = () => {
                             </button>
                         </div>
                     ) : wishlistItems.length > 0 ? (
-                        <div className="grid gap-x-8 gap-y-16 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                        <div className="grid grid-cols-1 gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                             {wishlistItems.map((product) => (
                                 <div key={product._id} className="wishlist-card group flex flex-col">
                                     <div className="relative aspect-[3/4] w-full bg-[var(--bg-secondary)] overflow-hidden mb-6 rounded-[10px]">
@@ -273,8 +273,8 @@ const Wishlist = () => {
                         </div>
                     )}
                 </div>
-            </main>
-        </div>
+            </main >
+        </div >
     )
 }
 
