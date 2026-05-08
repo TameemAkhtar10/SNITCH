@@ -284,6 +284,13 @@ const Navbar = ({
                                         </button>
                                         <button
                                             type="button"
+                                            onClick={() => { closeDrawer(); navigate('/profile') }}
+                                            className="rounded-full border border-[var(--border)] px-5 py-3 text-[10px] uppercase tracking-[0.2em] transition-colors hover:border-[var(--text-primary)] hover:text-[var(--text-primary)] sm:flex-1 sm:px-6"
+                                        >
+                                            Profile
+                                        </button>
+                                        <button
+                                            type="button"
                                             onClick={handleLogout}
                                             className="rounded-full border border-[var(--border)] px-5 py-3 text-[10px] uppercase tracking-[0.2em] text-[var(--danger)] transition-colors hover:border-[var(--danger)] sm:flex-1 sm:px-6"
                                         >

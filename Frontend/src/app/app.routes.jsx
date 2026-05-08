@@ -16,6 +16,8 @@ import Wishlist from "../features/Wishlist/Pages/Wishlist.jsx";
 import MyOrders from "../features/Orders/Pages/MyOrders.jsx";
 import OrderDetail from "../features/Orders/Pages/OrderDetail.jsx";
 import SellerOrders from "../features/Orders/Pages/SellerOrders.jsx";
+import Profile from "../features/User/Pages/Profile.jsx";
+import AddressPage from "../features/User/Pages/AddressPage.jsx";
 export const router = createBrowserRouter([
     { path: "/login", element: <Login /> },
     { path: "/register", element: <Register /> },
@@ -48,6 +50,14 @@ export const router = createBrowserRouter([
     {
         path: "/orders/:orderId",
         element: <ProtectedRoute><OrderDetail /></ProtectedRoute>
+    },
+    {
+        path: "/profile",
+        element: <ProtectedRoute><Profile /></ProtectedRoute>
+    },
+    {
+        path: "/profile/addresses",
+        element: <ProtectedRoute><AddressPage /></ProtectedRoute>
     },
     {
         path: "/seller",

@@ -29,9 +29,9 @@ const UseProduct = () => {
         }
     }, [dispatch])
 
-    const handleGetAllProducts = useCallback(async () => {
+    const handleGetAllProducts = useCallback(async (params = {}) => {
         try {
-            const response = await getAllProducts()
+            const response = await getAllProducts(params)
             dispatch(setProducts(response.products))
             return response.products
         }

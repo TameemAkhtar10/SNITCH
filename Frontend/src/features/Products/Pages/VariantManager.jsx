@@ -9,6 +9,8 @@ const VariantManager = ({ productId, onVariantAdded }) => {
         stock: '',
         priceAmount: '',
         priceCurrency: 'INR',
+        size: '',
+        color: '',
     })
 
     const [variantImages, setVariantImages] = useState([])
@@ -34,12 +36,14 @@ const VariantManager = ({ productId, onVariantAdded }) => {
             formDataToSend.append('stock', formData.stock)
             formDataToSend.append('priceAmount', formData.priceAmount)
             formDataToSend.append('priceCurrency', formData.priceCurrency)
+            if (formData.size) formDataToSend.append('size', formData.size)
+            if (formData.color) formDataToSend.append('color', formData.color)
             variantImages.forEach((file) => formDataToSend.append('files', file))
 
             const response = await addVariant(productId, formDataToSend)
 
             if (response) {
-                setFormData({ stock: '', priceAmount: '', priceCurrency: 'INR' })
+                setFormData({ stock: '', priceAmount: '', priceCurrency: 'INR', size: '', color: '' })
                 setVariantImages([])
                 setImagePreviews([])
                 setShowForm(false)
@@ -121,6 +125,30 @@ const VariantManager = ({ productId, onVariantAdded }) => {
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                         <div>
+                            <label className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-3 block">Size</label>
+                            <input
+                                type="text"
+                                name="size"
+                                value={formData.size}
+                                onChange={handleInputChange}
+                                className="vm-input"
+                                placeholder="e.g. S, M, L, XL"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-3 block">Color</label>
+                            <input
+                                type="text"
+                                name="color"
+                                value={formData.color}
+                                onChange={handleInputChange}
+                                className="vm-input"
+                                placeholder="e.g. Red, Blue, Green"
+                            />
+                        </div>
+
+                        <div>
                             <label className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-3 block">Stock Quantity</label>
                             <input
                                 type="number"
@@ -132,7 +160,9 @@ const VariantManager = ({ productId, onVariantAdded }) => {
                                 required
                             />
                         </div>
+                    </div>
 
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div>
                             <label className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-3 block">Price</label>
                             <input

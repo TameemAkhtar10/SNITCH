@@ -1,23 +1,30 @@
-import React, { useState } from 'react';
-import { useLocation, Link } from 'react-router-dom';
+﻿import React, { useRef, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import axios from 'axios';
+import html2canvas from 'html2canvas';
+
+const orderApi = axios.create({
+  baseURL: 'http://localhost:3000/api/orders',
+  withCredentials: true,
+});
 
 const useDarkMode = () => {
   const [isDark, setIsDark] = useState(() => {
-    const storedTheme = localStorage.getItem('theme')
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-    return storedTheme === 'dark' || (!storedTheme && prefersDark)
-  })
+    const storedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return storedTheme === 'dark' || (!storedTheme && prefersDark);
+  });
 
   const toggleDark = () => {
     setIsDark((prev) => {
-      const next = !prev
-      localStorage.setItem('theme', next ? 'dark' : 'light')
-      return next
-    })
-  }
+      const next = !prev;
+      localStorage.setItem('theme', next ? 'dark' : 'light');
+      return next;
+    });
+  };
 
-  return { isDark, toggleDark }
-}
+  return { isDark, toggleDark };
+};
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap');
@@ -49,318 +56,6 @@ const styles = `
     border-bottom: 1px solid var(--border);
   }
 
-  .os-wrapper {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .os-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.5rem 2rem;
-    border-bottom: 1px solid var(--border);
-    background-color: var(--bg-primary);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
-
-  .os-spacer {
-    width: 40px; /* To balance the toggle button on the right */
-  }
-
-  .os-logo {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.5rem;
-    letter-spacing: 0.5em;
-    font-weight: 600;
-    margin-left: 0.5em; /* to offset the letter spacing */
-    color: var(--text-primary);
-    text-decoration: none;
-    text-transform: uppercase;
-  }
-
-  .os-theme-toggle {
-    background: none;
-    border: none;
-    color: var(--text-primary);
-    cursor: pointer;
-    padding: 0.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transition: background-color 0.2s;
-    width: 40px;
-    height: 40px;
-  }
-
-  .os-theme-toggle:hover {
-    background-color: var(--bg-secondary);
-  }
-
-  .os-main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 3rem 1.5rem;
-    max-width: 600px;
-    margin: 0 auto;
-    width: 100%;
-  }
-
-  .os-checkmark-container {
-    width: 80px;
-    height: 80px;
-    color: var(--success);
-    animation: scaleIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-  }
-
-  @keyframes scaleIn {
-    0% { transform: scale(0); opacity: 0; }
-    100% { transform: scale(1); opacity: 1; }
-  }
-
-  .os-title {
-    font-family: 'Playfair Display', serif;
-    font-size: 2.5rem;
-    margin-top: 1.5rem;
-    margin-bottom: 0.5rem;
-    font-weight: 600;
-    text-align: center;
-  }
-
-  .os-subtitle {
-    color: var(--text-secondary);
-    font-size: 1.1rem;
-    text-align: center;
-    margin-bottom: 2.5rem;
-    line-height: 1.5;
-  }
-
-  .os-order-box {
-    background-color: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 2rem;
-    width: 100%;
-    margin-bottom: 2.5rem;
-  }
-
-  .os-order-meta {
-    display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-    padding-bottom: 1.5rem;
-    border-bottom: 1px dashed var(--border);
-  }
-
-  .os-meta-item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .os-meta-label {
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-    margin: 0;
-  }
-
-  .os-mono {
-    font-family: monospace;
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    background-color: var(--bg-primary);
-    padding: 0.4rem 0.6rem;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    letter-spacing: 1px;
-  }
-
-  .os-highlight {
-    font-weight: 600;
-    color: var(--text-primary);
-    font-size: 1.1rem;
-    margin: 0;
-  }
-
-  .os-items-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-  }
-
-  .os-item {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
-
-  .os-item-img {
-    width: 60px;
-    height: 80px;
-    object-fit: cover;
-    border-radius: 6px;
-    background-color: var(--bg-primary);
-    border: 1px solid var(--border);
-  }
-
-  .os-item-details {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-
-  .os-item-name {
-    font-weight: 500;
-    margin: 0 0 0.25rem 0;
-    color: var(--text-primary);
-  }
-
-  .os-item-qty {
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-    margin: 0;
-  }
-
-  .os-item-price {
-    font-weight: 600;
-    color: var(--text-primary);
-  }
-
-  .os-summary {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 1.5rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid var(--border);
-  }
-
-  .os-summary p {
-    margin: 0;
-  }
-
-  .os-total-label {
-    font-size: 1.1rem;
-    color: var(--text-secondary);
-    font-weight: 500;
-  }
-
-  .os-total-amount {
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: var(--accent);
-  }
-
-  .os-actions {
-    display: flex;
-    gap: 1rem;
-    width: 100%;
-    margin-bottom: 3rem;
-  }
-
-  .os-btn {
-    flex: 1;
-    padding: 1rem;
-    border-radius: 8px;
-    font-family: 'Outfit', sans-serif;
-    font-weight: 500;
-    font-size: 1rem;
-    text-align: center;
-    text-decoration: none;
-    transition: all 0.2s ease;
-    cursor: pointer;
-    border: 1px solid transparent;
-  }
-
-  .os-btn-primary {
-    background-color: var(--text-primary);
-    color: var(--bg-primary);
-  }
-
-  .os-btn-primary:hover {
-    opacity: 0.9;
-    transform: translateY(-2px);
-  }
-
-  .os-btn-secondary {
-    background-color: transparent;
-    color: var(--text-primary);
-    border-color: var(--border);
-  }
-
-  .os-btn-secondary:hover {
-    background-color: var(--bg-secondary);
-  }
-
-  .os-empty-state {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
-    padding: 3rem 1.5rem;
-  }
-
-  .os-empty-card {
-    width: 100%;
-    max-width: 520px;
-    padding: 2.5rem;
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    background: var(--bg-secondary);
-    text-align: center;
-  }
-
-  .os-empty-card h1 {
-    font-family: 'Playfair Display', serif;
-    font-size: 2rem;
-    margin: 0 0 0.75rem;
-  }
-
-  .os-empty-card p {
-    margin: 0 0 1.75rem;
-    color: var(--text-secondary);
-    line-height: 1.6;
-  }
-
-  .os-trust-badges {
-    display: flex;
-    justify-content: center;
-    gap: 3rem;
-    width: 100%;
-    flex-wrap: wrap;
-  }
-
-  .os-badge {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.75rem;
-    color: var(--text-secondary);
-  }
-
-  .os-badge svg {
-    width: 24px;
-    height: 24px;
-    color: var(--accent);
-  }
-
-  .os-badge span {
-    font-size: 0.85rem;
-    font-weight: 500;
-    text-align: center;
-  }
-
-  /* Confetti Animation */
   .confetti-container {
     position: fixed;
     top: 0;
@@ -384,6 +79,220 @@ const styles = `
     0% { transform: translateY(0) rotate(0deg); opacity: 1; }
     100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
   }
+
+  .bill-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  .bill-modal {
+    width: min(100%, 340px);
+    background: #ffffff;
+    color: #000000;
+    border-radius: 0;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    max-height: 90vh;
+    overflow: auto;
+  }
+
+  .bill-paper {
+    padding: 24px;
+    font-family: 'Courier New', 'Courier', monospace;
+    font-size: 13px;
+  }
+
+  .bill-title {
+    text-align: center;
+    font-weight: 700;
+    font-size: 22px;
+    margin: 0 0 4px 0;
+    letter-spacing: 0.15em;
+    font-family: 'Courier New', 'Courier', monospace;
+  }
+
+  .bill-subtitle {
+    text-align: center;
+    margin: 0;
+    font-size: 13px;
+    color: #777;
+    font-family: 'Courier New', 'Courier', monospace;
+  }
+
+  .bill-divider {
+    border-top: 1px dashed #999;
+    margin: 12px 0;
+    height: 0;
+    padding: 0;
+  }
+
+  .bill-meta-grid {
+    display: block;
+    margin: 0;
+  }
+
+  .bill-meta-label {
+    font-size: 11px;
+    color: #555;
+    margin: 0;
+    display: inline;
+    font-weight: normal;
+  }
+
+  .bill-meta-value {
+    margin: 0;
+    font-weight: normal;
+    display: inline;
+    font-size: 13px;
+  }
+
+  .bill-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 0;
+    margin: 0;
+  }
+
+  .bill-row:last-child {
+    border-bottom: none;
+  }
+
+  .bill-item-title {
+    font-weight: normal;
+    margin: 0;
+    font-size: 13px;
+  }
+
+  .bill-item-sub {
+    margin: 0;
+    font-size: 11px;
+    color: #555;
+    display: inline;
+  }
+
+  .bill-totals {
+    display: block;
+  }
+
+  .bill-total-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 0;
+    margin: 0;
+    font-size: 13px;
+  }
+
+  .bill-total-label {
+    text-align: left;
+    font-size: 13px;
+    color: #555;
+    font-weight: normal;
+  }
+
+  .bill-total-value {
+    text-align: right;
+    font-size: 13px;
+    font-weight: normal;
+  }
+
+  .bill-grand-total {
+    font-weight: 700;
+    font-size: 16px;
+    font-family: 'Courier New', 'Courier', monospace;
+  }
+
+  .bill-status {
+    text-align: center;
+    text-transform: capitalize;
+    font-weight: normal;
+    margin: 8px 0 0 0;
+    font-size: 13px;
+    color: #10b981;
+  }
+
+  .bill-thanks {
+    text-align: center;
+    font-size: 12px;
+    font-style: italic;
+    color: #777;
+    margin: 4px 0 0 0;
+  }
+
+  .bill-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 16px;
+  }
+
+  .bill-btn {
+    border: none;
+    border-radius: 6px;
+    padding: 10px 16px;
+    font-size: 12px;
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 600;
+    background: #999;
+    color: #fff;
+    cursor: pointer;
+    font-family: 'Courier New', 'Courier', monospace;
+  }
+
+  .bill-btn-primary {
+    background: #10b981;
+    color: #fff;
+  }
+
+  .bill-btn-primary:hover {
+    background: #059669;
+  }
+
+  .bill-btn:hover {
+    opacity: 0.9;
+  }
+
+  .bill-saved {
+    color: #10b981;
+    font-weight: 700;
+  }
+
+  @media print {
+    body * {
+      visibility: hidden;
+    }
+
+    .bill-overlay,
+    .bill-overlay * {
+      visibility: visible;
+    }
+
+    .bill-overlay {
+      position: fixed;
+      inset: 0;
+      background: #fff;
+      padding: 0;
+    }
+
+    .bill-modal {
+      width: 100%;
+      max-height: none;
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    .no-print {
+      display: none !important;
+    }
+  }
 `;
 
 const confettiPieces = Array.from({ length: 50 }).map((_, i) => {
@@ -399,32 +308,31 @@ const confettiPieces = Array.from({ length: 50 }).map((_, i) => {
   };
 });
 
-const Confetti = () => {
-  return (
-    <div className="confetti-container">
-      {confettiPieces.map((p) => (
-        <div
-          key={p.id}
-          className="confetti"
-          style={{
-            left: `${p.left}%`,
-            animationDuration: `${p.animationDuration}s`,
-            animationDelay: `${p.animationDelay}s`,
-            backgroundColor: p.backgroundColor,
-            transform: p.transform
-          }}
-        />
-      ))}
-    </div>
-  );
-}
+const Confetti = () => (
+  <div className="confetti-container">
+    {confettiPieces.map((piece) => (
+      <div
+        key={piece.id}
+        className="confetti"
+        style={{
+          left: `${piece.left}%`,
+          animationDuration: `${piece.animationDuration}s`,
+          animationDelay: `${piece.animationDelay}s`,
+          backgroundColor: piece.backgroundColor,
+          transform: piece.transform,
+        }}
+      />
+    ))}
+  </div>
+);
 
 const OrderSuccessfull = () => {
   const location = useLocation();
   const { isDark, toggleDark } = useDarkMode();
+  const billRef = useRef(null);
 
   const orderState = location.state;
-  const orderId = orderState?.orderId;
+  const orderId = orderState?.backendOrderId || orderState?.orderId;
   const paymentId = orderState?.paymentId;
   const items = Array.isArray(orderState?.items) ? orderState.items : [];
   const total = Number(orderState?.total || 0);
@@ -432,10 +340,15 @@ const OrderSuccessfull = () => {
   const estimatedDelivery = orderState?.estimatedDelivery || '';
   const hasOrderData = Boolean(orderState);
 
-  const formatCurrency = (value) =>
+  const [billData, setBillData] = useState(null);
+  const [billOpen, setBillOpen] = useState(false);
+  const [billLoading, setBillLoading] = useState(false);
+  const [billError, setBillError] = useState(null);
+
+  const formatCurrency = (value, activeCurrency = currency) =>
     new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency,
+      currency: activeCurrency,
     }).format(Number(value || 0));
 
   const getItemTitle = (item) => item?.product?.title || item?.name || 'Item';
@@ -448,28 +361,71 @@ const OrderSuccessfull = () => {
   };
 
   const themeStyles = isDark ? `
-        :root {
-            --bg-primary: #0a0a0a;
-            --bg-secondary: #141414;
-            --text-primary: #ffffff;
-            --text-secondary: #a3a3a3;
-            --accent: #d4af37;
-            --border: #262626;
-            --danger: #ef4444;
-            --success: #10b981;
-        }
-    ` : `
-        :root {
-            --bg-primary: #ffffff;
-            --bg-secondary: #f5f5f5;
-            --text-primary: #000000;
-            --text-secondary: #525252;
-            --accent: #b8860b;
-            --border: #e5e5e5;
-            --danger: #ef4444;
-            --success: #10b981;
-        }
-    `;
+    :root {
+      --bg-primary: #0a0a0a;
+      --bg-secondary: #141414;
+      --text-primary: #ffffff;
+      --text-secondary: #a3a3a3;
+      --accent: #d4af37;
+      --border: #262626;
+      --danger: #ef4444;
+      --success: #10b981;
+    }
+  ` : `
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f5f5f5;
+      --text-primary: #000000;
+      --text-secondary: #525252;
+      --accent: #b8860b;
+      --border: #e5e5e5;
+      --danger: #ef4444;
+      --success: #10b981;
+    }
+  `;
+
+  const generateBill = async () => {
+    if (!orderId) {
+      window.alert('Order reference is missing. Please return and try again.');
+      return;
+    }
+
+    try {
+      setBillLoading(true);
+      setBillError(null);
+      const response = await orderApi.post(`/${orderId}/bill`);
+      const bill = response?.data?.bill || response?.data?.data?.bill || null;
+      setBillData(bill);
+      setBillOpen(true);
+    } catch (error) {
+      const message = error?.response?.data?.message || 'Failed to generate bill';
+      setBillError(message);
+      window.alert(message);
+    } finally {
+      setBillLoading(false);
+    }
+  };
+
+  const downloadBillImage = async () => {
+    if (!billRef.current) {
+      return;
+    }
+
+    const canvas = await html2canvas(billRef.current, {
+      backgroundColor: '#ffffff',
+      scale: 2,
+      useCORS: true,
+    });
+
+    const link = document.createElement('a');
+    link.download = `${billData?.billNumber || 'snitch-bill'}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  };
+
+  const printBill = () => {
+    window.print();
+  };
 
   if (!hasOrderData) {
     return (
@@ -478,41 +434,27 @@ const OrderSuccessfull = () => {
           @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap');
 
           ${themeStyles}
-
           ${styles}
-
         `}</style>
-        <div className="min-h-screen font-outfit premium-bg premium-text transition-colors duration-500 os-wrapper">
-          <header className="os-header glass-header ">
-            <div className="os-spacer"></div>
-
-            <Link to="/" className="os-logo">SNITCH</Link>
-            <button className="os-theme-toggle" onClick={toggleDark} aria-label="Toggle Theme">
-              {isDark ? (
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="5"></circle>
-                  <line x1="12" y1="1" x2="12" y2="3"></line>
-                  <line x1="12" y1="21" x2="12" y2="23"></line>
-                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                  <line x1="1" y1="12" x2="3" y2="12"></line>
-                  <line x1="21" y1="12" x2="23" y2="12"></line>
-                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-                </svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-                </svg>
-              )}
+        <div className="min-h-screen font-outfit premium-bg premium-text transition-colors duration-500">
+          <header className="sticky top-0 z-40 flex items-center justify-between border-b border-(--border) bg-(--bg-primary) px-4 py-3 sm:px-12 sm:py-5">
+            <div className="w-10" />
+            <Link to="/" className="font-playfair text-sm font-semibold tracking-[0.5em] text-(--text-primary) sm:text-2xl">
+              SNITCH
+            </Link>
+            <button
+              className="rounded-full p-2 text-(--text-secondary) transition-colors hover:bg-(--bg-secondary) hover:text-(--text-primary)"
+              onClick={toggleDark}
+              aria-label="Toggle Theme"
+            >
+              {isDark ? '☼' : '☾'}
             </button>
           </header>
-
-          <main className="os-empty-state">
-            <div className="os-empty-card">
-              <h1>No order data found</h1>
-              <p>This page only shows after a successful checkout. Go back to the home page and place an order again.</p>
-              <Link to="/" className="os-btn os-btn-primary" style={{ display: 'inline-block' }}>
+          <main className="flex min-h-[70vh] items-center justify-center px-4">
+            <div className="max-w-xl rounded-3xl border border-(--border) bg-(--bg-secondary) p-8 text-center sm:p-10">
+              <h1 className="font-playfair text-3xl font-semibold sm:text-4xl">No order data found</h1>
+              <p className="mt-4 text-sm leading-6 text-(--text-secondary)">This page only shows after a successful checkout. Go back and place an order again.</p>
+              <Link to="/" className="btn-accent mt-8 inline-flex rounded-full px-6 py-3 text-xs uppercase tracking-[0.2em] font-medium">
                 Go Home
               </Link>
             </div>
@@ -522,131 +464,224 @@ const OrderSuccessfull = () => {
     );
   }
 
+  const billCurrency = billData?.items?.[0]?.currency || currency;
+  const billFormatMoney = (value) => formatCurrency(value, billCurrency);
+
   return (
     <>
       <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap');
+        ${themeStyles}
+        ${styles}
+      `}</style>
 
-          ${themeStyles}
-
-          ${styles}
-        `}</style>
-      <div className="min-h-screen font-outfit premium-bg premium-text transition-colors duration-500 os-wrapper">
+      <div className="min-h-screen font-outfit premium-bg premium-text transition-colors duration-500">
         <Confetti />
 
-        <header className="os-header glass-header">
-
-          <Link to="/" className="os-logo">SNITCH</Link>
-          <button className="os-theme-toggle" onClick={toggleDark} aria-label="Toggle Theme">
-            {isDark ? (
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="5"></circle>
-                <line x1="12" y1="1" x2="12" y2="3"></line>
-                <line x1="12" y1="21" x2="12" y2="23"></line>
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                <line x1="1" y1="12" x2="3" y2="12"></line>
-                <line x1="21" y1="12" x2="23" y2="12"></line>
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-              </svg>
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-              </svg>
-            )}
+        <header className="sticky top-0 z-40 flex items-center justify-between border-b border-(--border) bg-(--bg-primary) px-4 py-3 sm:px-12 sm:py-5">
+          <button
+            onClick={() => window.history.back()}
+            className="text-[8px] uppercase tracking-[0.15em] text-(--text-secondary) transition-colors hover:text-(--text-primary) no-print"
+          >
+            Back
+          </button>
+          <Link to="/" className="font-playfair text-sm font-semibold tracking-[0.5em] text-(--text-primary) sm:text-2xl">
+            SNITCH
+          </Link>
+          <button
+            onClick={toggleDark}
+            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+            className="rounded-full p-2 text-(--text-secondary) transition-colors hover:bg-(--bg-secondary) hover:text-(--text-primary) no-print"
+          >
+            {isDark ? '☼' : '☾'}
           </button>
         </header>
 
-        <main className="os-main">
-          <div className="os-checkmark-container">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '100%', height: '100%' }}>
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-              <polyline points="22 4 12 14.01 9 11.01"></polyline>
-            </svg>
+        <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12 lg:py-24">
+          <div className="mb-8 text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-(--border) bg-(--bg-secondary)">
+              ✓
+            </div>
+            <h1 className="font-playfair text-3xl font-semibold sm:text-5xl">Order Confirmed</h1>
+            <p className="mt-3 text-sm text-(--text-secondary)">Your order has been placed. Confirmation sent to your email.</p>
           </div>
 
-          <h1 className="os-title">Order Confirmed</h1>
-          <p className="os-subtitle">Your order has been placed. Confirmation sent to your email.</p>
-
-          <div className="os-order-box">
-            <div className="os-order-meta">
-              <div className="os-meta-item">
-                <p className="os-meta-label">Order ID</p>
-                <span className="os-mono">{orderId}</span>
+          <div className="rounded-3xl border border-(--border) bg-(--bg-secondary) p-5 sm:p-7">
+            <div className="grid gap-4 border-b border-dashed border-(--border) pb-5 sm:grid-cols-3">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-(--text-secondary)">Order ID</p>
+                <p className="mt-2 break-all text-sm font-medium">{orderId}</p>
               </div>
-              <div className="os-meta-item">
-                <p className="os-meta-label">Payment ID</p>
-                <span className="os-mono">{paymentId}</span>
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-(--text-secondary)">Payment ID</p>
+                <p className="mt-2 break-all text-sm font-medium">{paymentId}</p>
               </div>
-              <div className="os-meta-item">
-                <p className="os-meta-label">Est. Delivery</p>
-                <p className="os-highlight">{estimatedDelivery}</p>
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-(--text-secondary)">Est. Delivery</p>
+                <p className="mt-2 text-sm font-medium">{estimatedDelivery}</p>
               </div>
             </div>
 
-            <div className="os-items-list">
+            <div className="mt-5 space-y-4">
               {items.map((item, idx) => (
-                <div key={item.id || idx} className="os-item">
+                <div key={item.id || idx} className="flex gap-4 rounded-2xl border border-(--border) bg-(--bg-primary) p-4">
                   {getItemImage(item) ? (
-                    <img src={getItemImage(item)} alt={getItemTitle(item)} className="os-item-img" />
+                    <img src={getItemImage(item)} alt={getItemTitle(item)} className="h-24 w-20 rounded-lg object-cover" />
                   ) : (
-                    <div className="os-item-img" />
+                    <div className="h-24 w-20 rounded-lg border border-dashed border-(--border)" />
                   )}
-                  <div className="os-item-details">
-                    <h3 className="os-item-name">{getItemTitle(item)}</h3>
-                    <p className="os-item-qty">Qty: {getItemQty(item)}</p>
-                    {getItemMeta(item) ? <p className="os-item-qty">{getItemMeta(item)}</p> : null}
-                  </div>
-                  <div className="os-item-price">
-                    {formatCurrency(getItemPrice(item))}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <h2 className="truncate text-base font-medium sm:text-lg">{getItemTitle(item)}</h2>
+                        <p className="mt-1 text-sm text-(--text-secondary)">Qty: {getItemQty(item)}</p>
+                        {getItemMeta(item) ? <p className="mt-1 text-sm text-(--text-secondary)">{getItemMeta(item)}</p> : null}
+                      </div>
+                      <p className="text-sm font-medium">{formatCurrency(getItemPrice(item), billCurrency)}</p>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
 
-            <div className="os-summary">
-              <p className="os-total-label">Total Amount</p>
-              <p className="os-total-amount">{formatCurrency(total)}</p>
+            <div className="mt-6 flex items-center justify-between border-t border-dashed border-(--border) pt-5">
+              <p className="text-sm uppercase tracking-[0.16em] text-(--text-secondary)">Total</p>
+              <p className="font-playfair text-3xl font-semibold">{formatCurrency(total, currency)}</p>
             </div>
           </div>
 
-          <div className="os-actions">
-            <Link to="/" className="os-btn os-btn-secondary">Continue Shopping</Link>
-            <Link to="/cart" className="os-btn os-btn-primary">Back to Cart</Link>
-          </div>
-
-          <Link
-            to="/orders"
-            className="mb-8 inline-flex w-full items-center justify-center rounded-full border border-(--border) px-5 py-3 text-sm font-medium text-(--text-primary) transition-colors hover:bg-(--bg-secondary) sm:w-auto"
-          >
-            My Orders
-          </Link>
-
-          <div className="os-trust-badges">
-            <div className="os-badge">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                <polyline points="9 22 9 12 15 12 15 22"></polyline>
-              </svg>
-              <span>Easy Returns</span>
-            </div>
-            <div className="os-badge">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-              </svg>
-              <span>Secure Payment</span>
-            </div>
-            <div className="os-badge">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M15.05 5A5 5 0 0 1 19 8.95M15.05 1A9 9 0 0 1 23 8.94m-1 7.98v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-              </svg>
-              <span>24x7 Support</span>
-            </div>
+          <div className="no-print mt-6 flex flex-col gap-3 sm:flex-row">
+            <button onClick={generateBill} disabled={billLoading} className="btn-accent rounded-full px-6 py-3 text-xs uppercase tracking-[0.2em] font-medium">
+              {billLoading ? 'Generating Bill...' : 'Generate Bill'}
+            </button>
+            <Link to="/orders" className="inline-flex items-center justify-center rounded-full border border-(--border) px-6 py-3 text-xs uppercase tracking-[0.2em] font-medium text-(--text-primary) transition-colors hover:bg-(--bg-secondary)">
+              My Orders
+            </Link>
+            <Link to="/" className="inline-flex items-center justify-center rounded-full border border-(--border) px-6 py-3 text-xs uppercase tracking-[0.2em] font-medium text-(--text-primary) transition-colors hover:bg-(--bg-secondary)">
+              Continue Shopping
+            </Link>
           </div>
         </main>
 
+        {billOpen && billData ? (
+          <div className="bill-overlay no-print">
+            <div className="bill-modal">
+              <div ref={billRef} style={{ padding: '24px', fontFamily: "'Courier New', 'Courier', monospace", fontSize: '13px', background: '#ffffff', color: '#000000' }}>
+                <div style={{ textAlign: 'center', fontWeight: '700', fontSize: '22px', margin: '0 0 4px 0', letterSpacing: '0.15em' }}>
+                  SNITCH
+                </div>
+                <div style={{ textAlign: 'center', margin: '0', fontSize: '13px', color: '#777' }}>
+                  Purchase Invoice
+                </div>
+
+                <div style={{ borderTop: '1px dashed #999', margin: '12px 0', height: 0, padding: 0 }} />
+
+                <div style={{ marginBottom: '0', lineHeight: '1.6' }}>
+                  <div style={{ marginBottom: '4px' }}>
+                    <span style={{ fontSize: '11px', color: '#555', fontWeight: 'normal' }}>Bill No: </span>
+                    <span style={{ fontSize: '13px', fontWeight: 'normal' }}>{billData.billNumber}</span>
+                  </div>
+                  <div style={{ marginBottom: '4px' }}>
+                    <span style={{ fontSize: '11px', color: '#555', fontWeight: 'normal' }}>Date: </span>
+                    <span style={{ fontSize: '13px', fontWeight: 'normal' }}>{new Date(billData.billDate).toLocaleDateString('en-GB')}</span>
+                  </div>
+                  <div style={{ marginBottom: '0' }}>
+                    <span style={{ fontSize: '11px', color: '#555', fontWeight: 'normal' }}>Customer: </span>
+                    <span style={{ fontSize: '13px', fontWeight: 'normal' }}>{billData.customerName}</span>
+                  </div>
+                </div>
+
+                <div style={{ borderTop: '1px dashed #999', margin: '12px 0', height: 0, padding: 0 }} />
+
+                <div style={{ marginBottom: '0' }}>
+                  {billData.items.map((item, index) => (
+                    <div key={`${item.title}-${index}`} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '8px 0', margin: '0' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 'normal', margin: '0', fontSize: '13px' }}>Item: {item.title}</div>
+                        <div style={{ margin: '0', fontSize: '11px', color: '#555' }}>Qty: {item.quantity}</div>
+                      </div>
+                      <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <div style={{ fontWeight: 'normal', margin: '0', fontSize: '13px' }}>{billFormatMoney(item.amount)}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ borderTop: '1px dashed #999', margin: '12px 0', height: 0, padding: 0 }} />
+
+                <div style={{ marginBottom: '0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '6px 0', margin: '0', fontSize: '13px' }}>
+                    <span style={{ textAlign: 'left', fontSize: '13px', color: '#555', fontWeight: 'normal' }}>Subtotal</span>
+                    <span style={{ textAlign: 'right', fontSize: '13px', fontWeight: 'normal' }}>{billFormatMoney(billData.subtotal)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '6px 0', margin: '0', fontSize: '13px' }}>
+                    <span style={{ textAlign: 'left', fontSize: '13px', color: '#555', fontWeight: 'normal' }}>Shipping</span>
+                    <span style={{ textAlign: 'right', fontSize: '13px', fontWeight: 'normal' }}>{billData.shipping === 0 ? 'FREE' : billFormatMoney(billData.shipping)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '6px 0', margin: '0', fontSize: '13px' }}>
+                    <span style={{ textAlign: 'left', fontSize: '13px', color: '#555', fontWeight: 'normal' }}>GST (18%)</span>
+                    <span style={{ textAlign: 'right', fontSize: '13px', fontWeight: 'normal' }}>{billFormatMoney(billData.subtotal * 0.18)}</span>
+                  </div>
+                </div>
+
+                <div style={{ borderTop: '1px dashed #999', margin: '12px 0', height: 0, padding: 0 }} />
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '8px 0', margin: '0' }}>
+                  <span style={{ fontSize: '13px', color: '#555', fontWeight: 'normal' }}>TOTAL</span>
+                  <span style={{ fontSize: '16px', fontWeight: '700' }}>{billFormatMoney(billData.total)}</span>
+                </div>
+
+                <div style={{ borderTop: '1px dashed #999', margin: '12px 0', height: 0, padding: 0 }} />
+
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '13px', color: '#10b981', fontWeight: 'normal', textTransform: 'capitalize', margin: '4px 0' }}>
+                    Status: {billData.status}
+                  </div>
+                  <div style={{ textAlign: 'center', fontSize: '12px', fontStyle: 'italic', color: '#777', margin: '4px 0 0 0' }}>
+                    Thank you for shopping with Snitch
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center', marginTop: '16px' }} className="no-print">
+                  <button
+                    type="button"
+                    onClick={() => setBillOpen(false)}
+                    style={{
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '10px 16px',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      background: '#999',
+                      color: '#fff',
+                      cursor: 'pointer',
+                      fontFamily: "'Courier New', 'Courier', monospace"
+                    }}
+                  >
+                    Close
+                  </button>
+                  <button
+                    type="button"
+                    onClick={downloadBillImage}
+                    style={{
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '10px 16px',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      background: '#10b981',
+                      color: '#fff',
+                      cursor: 'pointer',
+                      fontFamily: "'Courier New', 'Courier', monospace"
+                    }}
+                  >
+                    Download Bill Image
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </>
   );

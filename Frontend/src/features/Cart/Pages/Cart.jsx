@@ -5,6 +5,7 @@ import { useCart } from '../Hooks/UseCart.js'
 import { updateItemQuantity } from '../State/cart.slice.js'
 import { useRazorpay } from "react-razorpay";
 import { useOrder } from '../../Orders/Hooks/useOrder.js'
+import useAddress from '../../User/Hooks/useAddress.js'
 
 const useDarkMode = () => {
     const [isDark, setIsDark] = useState(() => {
@@ -30,6 +31,7 @@ const Cart = () => {
     const navigate = useNavigate()
     const { fetchCart, removeFromCartHandler, updateCartItemHandler, clearCartHandler, handlecreateorder, handlecheckpayment } = useCart()
     const { createOrderHandler } = useOrder()
+    const { fetchAddresses } = useAddress()
     const items = useSelector((state) => state.cart?.items || [])
     const subtotal = useSelector((state) => state.cart?.subtotal || 0)
     const loading = useSelector((state) => state.cart?.loading)
@@ -97,7 +99,28 @@ const Cart = () => {
         })
         .filter((item) => item.productId && item.title)
 
-    const handlecheckout = async (amount, currency) => {
+    const [showAddressModal, setShowAddressModal] = React.useState(false)
+    const [addressesList, setAddressesList] = React.useState([])
+    const [selectedAddress, setSelectedAddress] = React.useState(null)
+
+    const openAddressModal = async () => {
+        try {
+            const list = await fetchAddresses()
+            setAddressesList(list)
+            if (!list || list.length === 0) {
+                // No addresses, redirect to manage addresses
+                window.alert('Please add a delivery address before checkout')
+                navigate('/profile/addresses')
+                return
+            }
+            setShowAddressModal(true)
+        } catch (err) {
+            console.error('Failed to fetch addresses', err)
+            navigate('/profile/addresses')
+        }
+    }
+
+    const handlecheckout = async (amount, currency, deliveryAddress = null) => {
         try {
             if (isLoading || !Razorpay) {
                 window.alert('Payment gateway is still loading. Please try again in a moment.')
@@ -135,6 +158,7 @@ const Cart = () => {
                                 currency,
                                 paymentId: paymentResponse.razorpay_payment_id,
                                 razorpayOrderId: paymentResponse.razorpay_order_id,
+                                deliveryAddress: deliveryAddress || selectedAddress || {}
                             })
                             const createdOrder = orderResponse?.order || orderResponse?.data?.order || orderResponse?.data?.data?.order || null
                             await clearCartHandler()
@@ -474,7 +498,7 @@ const Cart = () => {
                                 </div>
 
                                 <button
-                                    onClick={() => handlecheckout(total, "INR")}
+                                    onClick={() => openAddressModal()}
                                     className="btn-accent w-full py-3 sm:py-5 px-4 sm:px-10 text-xs uppercase tracking-[0.2em] font-medium"
                                 >
                                     Proceed to Purchase
@@ -485,6 +509,33 @@ const Cart = () => {
                                 </p>
                             </div>
                         </aside>
+                    </div>
+                )}
+                {/* Address selection modal */}
+                {showAddressModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center">
+                        <div className="absolute inset-0 bg-black/50" onClick={() => setShowAddressModal(false)} />
+                        <div className="relative z-60 w-full max-w-2xl p-6 bg-white text-black rounded-lg">
+                            <h3 className="font-playfair text-xl mb-4">Select delivery address</h3>
+                            <div className="space-y-3 max-h-72 overflow-auto mb-4">
+                                {addressesList.map((addr) => (
+                                    <label key={addr._id} className={`block p-3 border rounded ${selectedAddress && selectedAddress._id === addr._id ? 'border-[var(--accent)] bg-[var(--bg-secondary)]' : 'border-[var(--border)]'}`}>
+                                        <input type="radio" name="address" onChange={() => setSelectedAddress(addr)} checked={selectedAddress?._id === addr._id} className="mr-2" />
+                                        <span className="font-medium">{addr.name}</span>
+                                        <div className="text-sm">{addr.street}, {addr.city}, {addr.state} - {addr.pincode}</div>
+                                        <div className="text-sm">{addr.phone}</div>
+                                    </label>
+                                ))}
+                            </div>
+                            <div className="flex gap-3 justify-end">
+                                <button className="btn-outline px-4 py-2" onClick={() => setShowAddressModal(false)}>Cancel</button>
+                                <button className="btn-accent px-4 py-2" onClick={() => {
+                                    if (!selectedAddress) { window.alert('Please select an address'); return }
+                                    setShowAddressModal(false)
+                                    handlecheckout(total, 'INR', selectedAddress)
+                                }}>Proceed to Payment</button>
+                            </div>
+                        </div>
                     </div>
                 )}
             </main>

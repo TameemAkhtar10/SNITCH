@@ -37,6 +37,8 @@ const CreateProduct = () => {
         stock: "",
         priceAmount: "",
         priceCurrency: "INR",
+        images: [],
+        imagePreviews: [],
     });
     const [images, setImages] = useState([]);
     const [imagePreviews, setImagePreviews] = useState([]);
@@ -57,11 +59,28 @@ const CreateProduct = () => {
         setNewVariant((prev) => ({ ...prev, [name]: value }));
     };
 
+    const handleVariantImageChange = (event) => {
+        const files = Array.from(event.target.files);
+        const previews = files.map((file) => URL.createObjectURL(file));
+        setNewVariant((prev) => ({
+            ...prev,
+            images: files,
+            imagePreviews: previews
+        }));
+    };
+
     const handleAddVariant = () => {
         if (!newVariant.color || !newVariant.size || !newVariant.stock || !newVariant.priceAmount) {
             setError("Please fill all variant fields");
             return;
         }
+
+        // Validate that variant has at least one image
+        if (newVariant.images.length === 0) {
+            setError("Please upload at least one image for this variant");
+            return;
+        }
+
         setVariants([...variants, { ...newVariant, id: Date.now() }]);
         setNewVariant({
             color: "",
@@ -69,6 +88,8 @@ const CreateProduct = () => {
             stock: "",
             priceAmount: "",
             priceCurrency: "INR",
+            images: [],
+            imagePreviews: [],
         });
         setShowVariantForm(false);
         setError("");
@@ -89,6 +110,13 @@ const CreateProduct = () => {
         event.preventDefault();
         setError("");
         setSuccess("");
+
+        // Validate that at least one image is uploaded
+        if (images.length === 0) {
+            setError("Please upload at least one image of the product.");
+            return;
+        }
+
         setLoading(true);
         try {
             const form = new FormData();
@@ -99,16 +127,25 @@ const CreateProduct = () => {
             form.append("stock", formData.stock);
 
             if (variants.length > 0) {
-                const variantsData = variants.map(v => ({
-                    color: v.color,
-                    size: v.size,
-                    stock: v.stock,
-                    priceAmount: v.priceAmount,
-                    priceCurrency: v.priceCurrency,
-                }));
+                const variantsData = variants.map((v, index) => {
+                    // Append images for each variant using a field that includes the variant index
+                    v.images.forEach((file) => {
+                        form.append(`variantFiles_${index}`, file);
+                    });
+
+                    return {
+                        color: v.color,
+                        size: v.size,
+                        stock: parseInt(v.stock, 10),
+                        priceAmount: parseFloat(v.priceAmount),
+                        priceCurrency: v.priceCurrency,
+                        imageCount: v.images.length,
+                    };
+                });
                 form.append("variants", JSON.stringify(variantsData));
             }
 
+            // Append all product images to FormData
             images.forEach((file) => form.append("files", file));
             await handleCreateProduct(form);
             setSuccess("Product listed successfully.");
@@ -343,6 +380,35 @@ const CreateProduct = () => {
                                     </div>
                                 </div>
 
+                                <div className="border-t border-[var(--border)] pt-8 mb-8">
+                                    <label className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-4 block">Variant Images <span className="text-[var(--danger)]">*Required</span></label>
+                                    <div className="upload-zone p-8 cursor-pointer flex flex-col items-center justify-center text-center bg-[var(--bg-primary)]" onClick={() => document.getElementById("variant-images").click()}>
+                                        <input
+                                            id="variant-images"
+                                            type="file"
+                                            multiple
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={handleVariantImageChange}
+                                        />
+                                        <div className="text-xl mb-2 font-light premium-text-muted">↓</div>
+                                        <p className="font-outfit text-sm mb-1">
+                                            {newVariant.images.length === 0 ? "Upload variant images" : `${newVariant.images.length} image(s) selected`}
+                                        </p>
+                                        <p className="text-[10px] uppercase tracking-widest premium-text-muted">Max 5 images · 5MB each</p>
+                                    </div>
+
+                                    {newVariant.imagePreviews.length > 0 && (
+                                        <div className="flex flex-wrap gap-4 mt-4">
+                                            {newVariant.imagePreviews.map((preview, index) => (
+                                                <div key={index} className="w-16 aspect-square border border-[var(--border)] bg-[var(--bg-primary)] p-1 rounded-lg">
+                                                    <img src={preview} alt={`Variant ${index + 1}`} className="w-full h-full object-cover rounded-lg" />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
                                 <button type="button" onClick={handleAddVariant} className="btn-outline w-full py-4 text-xs uppercase tracking-[0.2em] font-medium">
                                     Confirm Variant
                                 </button>
@@ -352,14 +418,26 @@ const CreateProduct = () => {
                         {variants.length > 0 && (
                             <div className="flex flex-col gap-4">
                                 {variants.map((variant) => (
-                                    <div key={variant.id} className="flex justify-between items-center p-6 border border-[var(--border)] bg-[var(--bg-primary)]">
-                                        <div>
-                                            <p className="font-playfair text-lg mb-1">{variant.color} — {variant.size}</p>
-                                            <p className="text-[10px] uppercase tracking-widest premium-text-muted">Stock: {variant.stock} | Price: {variant.priceCurrency} {variant.priceAmount}</p>
+                                    <div key={variant.id} className="border border-[var(--border)] bg-[var(--bg-primary)] p-6">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div>
+                                                <p className="font-playfair text-lg mb-1">{variant.color} — {variant.size}</p>
+                                                <p className="text-[10px] uppercase tracking-widest premium-text-muted">Stock: {variant.stock} | Price: {variant.priceCurrency} {variant.priceAmount}</p>
+                                            </div>
+                                            <button type="button" onClick={() => handleRemoveVariant(variant.id)} className="text-[10px] uppercase tracking-widest text-[var(--danger)] hover:underline underline-offset-4 transition-colors">
+                                                Remove
+                                            </button>
                                         </div>
-                                        <button type="button" onClick={() => handleRemoveVariant(variant.id)} className="text-[10px] uppercase tracking-widest text-[var(--danger)] hover:underline underline-offset-4 transition-colors">
-                                            Remove
-                                        </button>
+
+                                        {variant.imagePreviews && variant.imagePreviews.length > 0 && (
+                                            <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-[var(--border)]">
+                                                {variant.imagePreviews.map((preview, index) => (
+                                                    <div key={index} className="w-14 aspect-square border border-[var(--border)] bg-[var(--bg-primary)] p-1 rounded-lg">
+                                                        <img src={preview} alt={`${variant.color} ${index + 1}`} className="w-full h-full object-cover rounded-lg" />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -367,7 +445,9 @@ const CreateProduct = () => {
                     </section>
 
                     <section className="premium-surface p-10 border border-[var(--border)]">
-                        <h3 className="font-playfair text-2xl mb-8 border-b border-[var(--border)] pb-4">Media</h3>
+                        <h3 className="font-playfair text-2xl mb-8 border-b border-[var(--border)] pb-4">
+                            Media <span className="text-xs font-light premium-text-muted">*Required</span>
+                        </h3>
 
                         <div className="upload-zone p-16 cursor-pointer flex flex-col items-center justify-center text-center bg-[var(--bg-primary)]" onClick={() => document.getElementById("images").click()}>
                             <input id="images" name="images" type="file" multiple accept="image/*" className="hidden" onChange={handleImageChange} />
@@ -386,6 +466,10 @@ const CreateProduct = () => {
                                     </div>
                                 ))}
                             </div>
+                        )}
+
+                        {images.length > 0 && (
+                            <p className="mt-4 text-xs text-[var(--success)] tracking-widest">✓ {images.length} image(s) selected</p>
                         )}
                     </section>
 

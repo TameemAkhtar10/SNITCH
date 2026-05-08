@@ -262,7 +262,18 @@ const Dashboard = () => {
 
                                         <div className="flex justify-between items-center text-[10px] uppercase tracking-widest premium-text-muted border-b border-[var(--border)] pb-4 mb-4">
                                             <span>Variants: {product.variants?.length || 0}</span>
-                                            <span>Stock: {product.variants?.reduce((sum, v) => sum + (Number(v.stock) || 0), 0) || 0}</span>
+                                            <span>
+                                                {(() => {
+                                                    const totalStock = product.variants?.reduce((sum, v) => sum + (Number(v.stock) || 0), 0) || 0;
+                                                    if (totalStock === 0) {
+                                                        return <span style={{ color: '#ef4444' }}>Out of Stock</span>;
+                                                    } else if (totalStock <= 5) {
+                                                        return <span style={{ color: 'var(--accent)' }}>Low Stock: {totalStock}</span>;
+                                                    } else {
+                                                        return <span style={{ color: '#10b981' }}>{totalStock} In Stock</span>;
+                                                    }
+                                                })()}
+                                            </span>
                                         </div>
 
                                         <button

@@ -50,6 +50,8 @@ const Home = () => {
     const [drawerOpen, setDrawerOpen] = useState(false)
     const [recentlyViewed, setRecentlyViewed] = useState([])
     const [recentlyViewedLoading, setRecentlyViewedLoading] = useState(false)
+    const [minPrice, setMinPrice] = useState('')
+    const [maxPrice, setMaxPrice] = useState('')
     const token = getToken()
     const cartItems = useSelector((state) => state.cart?.items || [])
     const cartItemCount = cartItems.length
@@ -70,6 +72,28 @@ const Home = () => {
         }
         fetchProducts()
     }, [handleGetAllProducts, user])
+
+    // Debounced search and filter effect
+    useEffect(() => {
+        const debounceTimer = setTimeout(async () => {
+            setLoading(true)
+            try {
+                const params = {}
+                if (searchQuery) params.search = searchQuery
+                if (selectedCategory && selectedCategory !== 'All Products') params.category = selectedCategory
+                if (minPrice) params.minPrice = minPrice
+                if (maxPrice) params.maxPrice = maxPrice
+                
+                await handleGetAllProducts(params)
+            } catch (error) {
+                console.log(error)
+            } finally {
+                setLoading(false)
+            }
+        }, 500) // 500ms debounce
+
+        return () => clearTimeout(debounceTimer)
+    }, [searchQuery, selectedCategory, minPrice, maxPrice, handleGetAllProducts])
 
     useEffect(() => {
         const fetchRecentlyViewed = async () => {
@@ -177,11 +201,7 @@ const Home = () => {
         }
     }
 
-    const filteredProducts = products?.filter(product =>
-        (product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            product.description.toLowerCase().includes(searchQuery.toLowerCase())) &&
-        (selectedCategory === 'All Products' ? true : product.category === selectedCategory || true) // Keep it true if category isn't properly stored, adapt as needed
-    ) || []
+    const filteredProducts = products || []
 
     const categories = ['All Products', 'Electronics', 'Fashion', 'Books', 'Home & Garden']
 
@@ -346,9 +366,16 @@ const Home = () => {
                                 </button>
                             </>
                         ) : (
-                            <button onClick={() => { setProfileMenuOpen(false); }} className="px-4 py-2 text-xs uppercase tracking-widest premium-text-muted hover:text-[var(--text-primary)] text-left transition-colors">
-                                Purchase History
-                            </button>
+                            <>
+                                <button onClick={() => { setProfileMenuOpen(false); navigate('/profile'); }} className="px-4 py-2 text-xs uppercase tracking-widest premium-text-muted hover:text-[var(--text-primary)] text-left transition-colors">
+                                    Profile
+                                </button>
+                                <button onClick={() => { 
+                                    navigate('/orders'); setProfileMenuOpen(false);
+                                }} className="px-4 py-2 text-xs uppercase tracking-widest premium-text-muted hover:text-[var(--text-primary)] text-left transition-colors">
+                                    Purchase History
+                                </button>
+                            </>
                         )}
 
                         <button onClick={handleLogout} className="mt-4 px-4 py-2 text-[10px] uppercase tracking-[0.2em] text-[var(--danger)] text-left transition-colors">
@@ -386,16 +413,51 @@ const Home = () => {
                 </div>
 
                 <div className="mx-auto max-w-[1600px] px-6 sm:px-12 py-20">
-                    <div className="flex flex-wrap gap-6 justify-center mb-12">
-                        {categories.map((category, idx) => (
-                            <button
-                                key={idx}
-                                className={`text-[10px] uppercase tracking-[0.2em] transition-all pb-1 border-b ${selectedCategory === category ? 'border-[var(--text-primary)] premium-text' : 'border-transparent premium-text-muted hover:text-[var(--text-primary)]'}`}
-                                onClick={() => setSelectedCategory(category)}
-                            >
-                                {category}
-                            </button>
-                        ))}
+                    <div className="flex flex-col gap-8 mb-12">
+                        {/* Category Filter */}
+                        <div className="flex flex-wrap gap-6 justify-center">
+                            {categories.map((category, idx) => (
+                                <button
+                                    key={idx}
+                                    className={`text-[10px] uppercase tracking-[0.2em] transition-all pb-1 border-b ${selectedCategory === category ? 'border-[var(--text-primary)] premium-text' : 'border-transparent premium-text-muted hover:text-[var(--text-primary)]'}`}
+                                    onClick={() => setSelectedCategory(category)}
+                                >
+                                    {category}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Price Filter */}
+                        <div className="flex flex-col sm:flex-row gap-6 items-center justify-center">
+                            <div className="flex items-center gap-4">
+                                <label className="text-[10px] uppercase tracking-[0.2em] premium-text-muted">Min Price</label>
+                                <input
+                                    type="number"
+                                    value={minPrice}
+                                    onChange={(e) => setMinPrice(e.target.value)}
+                                    placeholder="0"
+                                    className="input-premium w-32 py-2 text-sm font-light"
+                                />
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <label className="text-[10px] uppercase tracking-[0.2em] premium-text-muted">Max Price</label>
+                                <input
+                                    type="number"
+                                    value={maxPrice}
+                                    onChange={(e) => setMaxPrice(e.target.value)}
+                                    placeholder="9999999"
+                                    className="input-premium w-32 py-2 text-sm font-light"
+                                />
+                            </div>
+                            {(minPrice || maxPrice) && (
+                                <button
+                                    onClick={() => { setMinPrice(''); setMaxPrice(''); }}
+                                    className="text-[10px] uppercase tracking-[0.2em] text-[var(--accent)] hover:underline"
+                                >
+                                    Clear
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
 

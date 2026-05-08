@@ -239,6 +239,11 @@ const OrderDetail = () => {
                                     </Link>
                                 </div>
                             )}
+                            {order?.refundStatus && order.refundStatus !== 'none' && (
+                                <div className="mt-4 text-sm text-(--text-secondary)">
+                                    Refund status: <span className="font-medium">{order.refundStatus}</span>
+                                </div>
+                            )}
                         </div>
                     </div>
                 ) : (

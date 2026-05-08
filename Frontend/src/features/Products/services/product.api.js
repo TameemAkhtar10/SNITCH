@@ -21,9 +21,9 @@ export const getSellerProducts = async () => {
     }
 }
 
-export const getAllProducts = async () => {
+export const getAllProducts = async (params = {}) => {
     try {
-        const response = await api.get('/')
+        const response = await api.get('/', { params })
         return response.data
     } catch (error) {
         console.log(error);
