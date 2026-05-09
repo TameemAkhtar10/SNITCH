@@ -138,18 +138,26 @@ const Cart = () => {
             const response = await handlecreateorder(amount, currency)
             console.log('Order created successfully:', response)
 
-            if (!response?.id || !response?.amount || !response?.currency) {
+            const razorpayOrder = response?.order || response
+            const razorpayKey = response?.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID
+
+            if (!razorpayKey) {
+                window.alert('Razorpay key is missing. Please configure VITE_RAZORPAY_KEY_ID.')
+                return
+            }
+
+            if (!razorpayOrder?.id || !razorpayOrder?.amount || !razorpayOrder?.currency) {
                 window.alert('Order initialization failed. Please try again.')
                 return
             }
 
             const options = {
-                key: "rzp_test_SldkzeX392DYuC",
-                amount: response.amount,
-                currency: response.currency,
+                key: razorpayKey,
+                amount: razorpayOrder.amount,
+                currency: razorpayOrder.currency,
                 name: "Snitch",
                 description: "Test Transaction",
-                order_id: response.id, // Generate order_id on server
+                order_id: razorpayOrder.id, // Generate order_id on server
                 handler: async (paymentResponse) => {
                     const isvalid = await handlecheckpayment(paymentResponse)
                     if (isvalid) {

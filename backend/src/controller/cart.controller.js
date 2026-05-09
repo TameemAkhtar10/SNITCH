@@ -327,6 +327,7 @@ export const createOrderController = async (req, res) => {
             success: true,
             message: 'Order created successfully',
             order,
+            keyId: config.RAZORPAY_KEY_ID,
         });
 
 
