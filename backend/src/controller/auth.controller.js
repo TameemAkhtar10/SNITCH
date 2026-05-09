@@ -125,7 +125,7 @@ export const googleCallback = async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000
         });
 
-        const frontendURL = process.env.FRONTEND_URL || 'http://localhost:5173'
+        const frontendURL ='https://snitch-aukv.onrender.com/login'
         const redirectTo = req.query.state || '/home'
         return res.redirect(`${frontendURL}/auth/google/success?token=${token}&redirectTo=${encodeURIComponent(redirectTo)}`);
     } catch (error) {
