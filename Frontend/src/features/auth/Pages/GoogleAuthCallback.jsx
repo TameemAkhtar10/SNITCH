@@ -16,31 +16,29 @@ const GoogleAuthCallback = () => {
                 const params = new URLSearchParams(window.location.search);
                 const token = params.get("token");
                 const redirectTo = params.get("redirectTo");
+                const fallbackPath = redirectTo || "/home";
 
-                // If token is in URL, the backend has already set it in cookies
-                // Now fetch user data to populate Redux state
-                if (token || user) {
-                    try {
-                        const userData = await getme();
-                        dispatch(setuser(userData?.user || userData?.data?.user || userData));
-
-                        // Redirect based on user role or redirectTo param
-                        setTimeout(() => {
-                            if (userData?.user?.role === "seller" || userData?.data?.user?.role === "seller") {
-                                navigate("/seller", { replace: true });
-                            } else if (redirectTo) {
-                                navigate(redirectTo, { replace: true });
-                            } else {
-                                navigate("/", { replace: true });
-                            }
-                        }, 100);
-                    } catch (error) {
-                        console.error("Failed to fetch user:", error);
-                        navigate("/login", { replace: true });
-                    }
-                } else {
+                if (!token && !user) {
                     navigate("/login", { replace: true });
+                    return;
                 }
+
+                let nextUser = user;
+
+                try {
+                    const userData = await getme();
+                    nextUser = userData?.user || userData?.data?.user || userData;
+                    dispatch(setuser(nextUser));
+                } catch (error) {
+                    console.error("Failed to fetch user after Google login:", error);
+                }
+
+                if (nextUser?.role === "seller") {
+                    navigate("/seller", { replace: true });
+                    return;
+                }
+
+                navigate(fallbackPath, { replace: true });
             } finally {
                 setLoading(false);
             }
