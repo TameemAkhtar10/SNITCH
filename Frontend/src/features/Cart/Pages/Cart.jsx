@@ -68,9 +68,14 @@ const Cart = () => {
 
     const dispatch = useDispatch()
 
+    const [updatingItems, setUpdatingItems] = useState({})
+
     const handleQuantityChange = async (item, nextQuantity) => {
         const previousQuantity = item?.quantity
         const itemId = item?._id
+
+        // Mark this item as updating (local UI state)
+        setUpdatingItems((prev) => ({ ...prev, [itemId]: true }))
 
         // Optimistically update Redux state
         dispatch(updateItemQuantity({ itemId, quantity: nextQuantity }))
@@ -88,6 +93,9 @@ const Cart = () => {
             // Revert on failure
             dispatch(updateItemQuantity({ itemId, quantity: previousQuantity }))
             console.error('Failed to update quantity:', error)
+        } finally {
+            // Clear updating flag for this item
+            setUpdatingItems((prev) => ({ ...prev, [itemId]: false }))
         }
     }
 
@@ -499,7 +507,7 @@ const Cart = () => {
                                                         <button
                                                             type="button"
                                                             onClick={() => handleQuantityChange(item, Math.max(1, qty - 1))}
-                                                            disabled={qty <= 1 || loading}
+                                                            disabled={qty <= 1 || updatingItems[item._id]}
                                                             className="flex h-9 w-9 items-center justify-center text-lg transition-colors disabled:cursor-not-allowed disabled:opacity-40 hover:text-(--accent)"
                                                             aria-label="Decrease quantity"
                                                         >
@@ -509,7 +517,7 @@ const Cart = () => {
                                                         <button
                                                             type="button"
                                                             onClick={() => handleQuantityChange(item, Math.min(stock, qty + 1))}
-                                                            disabled={qty >= stock || stock <= 0 || loading}
+                                                            disabled={qty >= stock || stock <= 0 || updatingItems[item._id]}
                                                             className="flex h-9 w-9 items-center justify-center text-lg transition-colors disabled:cursor-not-allowed disabled:opacity-40 hover:text-(--accent)"
                                                             aria-label="Increase quantity"
                                                         >
