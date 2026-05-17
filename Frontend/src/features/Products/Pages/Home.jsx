@@ -178,6 +178,7 @@ const Home = () => {
         { label: 'Search', action: () => { closeDrawer(); handleSearchFocus() } },
         { label: 'Cart', action: () => { closeDrawer(); navigate('/cart') } },
         ...(token && user?.role !== 'seller' ? [{ label: 'Wishlist', action: () => { closeDrawer(); navigate('/wishlist') } }] : []),
+        ...(token && user?.role !== 'seller' ? [{ label: 'Wallet', action: () => { closeDrawer(); navigate('/wallet') } }] : []),
         { label: user?.role === 'seller' ? 'Seller Studio' : 'Create Account', action: () => { closeDrawer(); navigate(user?.role === 'seller' ? '/seller' : '/register') } },
     ]
 
@@ -374,6 +375,11 @@ const Home = () => {
                                     navigate('/orders'); setProfileMenuOpen(false);
                                 }} className="px-4 py-2 text-xs uppercase tracking-widest premium-text-muted hover:text-[var(--text-primary)] text-left transition-colors">
                                     Purchase History
+                                </button>
+                                <button onClick={() => {
+                                    navigate('/wallet'); setProfileMenuOpen(false);
+                                }} className="px-4 py-2 text-xs uppercase tracking-widest premium-text-muted hover:text-[var(--text-primary)] text-left transition-colors">
+                                    Wallet
                                 </button>
                             </>
                         )}

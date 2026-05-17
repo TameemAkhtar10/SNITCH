@@ -6,6 +6,7 @@ import { updateItemQuantity } from '../State/cart.slice.js'
 import { useRazorpay } from "react-razorpay";
 import { useOrder } from '../../Orders/Hooks/useOrder.js'
 import useAddress from '../../User/Hooks/useAddress.js'
+import { useWallet } from '../../Wallet/Hooks/useWallet.js'
 
 const useDarkMode = () => {
     const [isDark, setIsDark] = useState(() => {
@@ -32,15 +33,18 @@ const Cart = () => {
     const { fetchCart, removeFromCartHandler, updateCartItemHandler, clearCartHandler, handlecreateorder, handlecheckpayment } = useCart()
     const { createOrderHandler } = useOrder()
     const { fetchAddresses } = useAddress()
+    const { fetchBalance, payWithWalletHandler } = useWallet()
     const items = useSelector((state) => state.cart?.items || [])
     const subtotal = useSelector((state) => state.cart?.subtotal || 0)
     const loading = useSelector((state) => state.cart?.loading)
     const error = useSelector((state) => state.cart?.error)
+    const walletBalance = useSelector((state) => state.wallet?.balance || 0)
     const { Razorpay, isLoading } = useRazorpay()
 
     useEffect(() => {
         fetchCart().catch(() => { })
-    }, [fetchCart])
+        fetchBalance().catch(() => { })
+    }, [fetchCart, fetchBalance])
 
     const currency = items?.[0]?.currency || 'INR'
     const currencyPrefix = currency === 'INR' ? '₹' : ''
@@ -74,6 +78,12 @@ const Cart = () => {
         // Call API in background
         try {
             await updateCartItemHandler(itemId, nextQuantity)
+            // Refresh cart from backend so subtotal and item data are authoritative
+            try {
+                await fetchCart()
+            } catch (fetchError) {
+                console.error('Failed to refetch cart after quantity update:', fetchError)
+            }
         } catch (error) {
             // Revert on failure
             dispatch(updateItemQuantity({ itemId, quantity: previousQuantity }))
@@ -105,13 +115,14 @@ const Cart = () => {
     const [showAddressModal, setShowAddressModal] = React.useState(false)
     const [addressesList, setAddressesList] = React.useState([])
     const [selectedAddress, setSelectedAddress] = React.useState(null)
+    const [paymentMethod, setPaymentMethod] = React.useState('razorpay') // 'razorpay' or 'wallet'
 
-    const openAddressModal = async () => {
+    const openAddressModal = async (method = 'razorpay') => {
         try {
+            setPaymentMethod(method)
             const list = await fetchAddresses()
             setAddressesList(list)
             if (!list || list.length === 0) {
-                // No addresses, redirect to manage addresses
                 window.alert('Please add a delivery address before checkout')
                 navigate('/profile/addresses')
                 return
@@ -219,6 +230,46 @@ const Cart = () => {
         catch (error) {
             console.error('Failed to create order:', error)
             const errorMsg = error?.response?.data?.message || 'Failed to create order'
+            window.alert(errorMsg)
+        }
+    }
+
+    const handlePayWithWallet = async (deliveryAddress = null) => {
+        try {
+            if (total > walletBalance) {
+                window.alert('Insufficient wallet balance. Please add money to your wallet.')
+                return
+            }
+
+            // Deduct from wallet
+            await payWithWalletHandler(total)
+
+            // Create order with wallet payment
+            const orderItems = buildOrderItems(items)
+            const orderResponse = await createOrderHandler({
+                items: orderItems,
+                totalAmount: total,
+                currency: 'INR',
+                paymentMethod: 'wallet',
+                deliveryAddress: deliveryAddress || selectedAddress || {}
+            })
+
+            const createdOrder = orderResponse?.order || orderResponse?.data?.order || orderResponse?.data?.data?.order || null
+            await clearCartHandler()
+            navigate('/order-successfull', {
+                state: {
+                    orderId: createdOrder?._id || null,
+                    backendOrderId: createdOrder?._id || null,
+                    paymentMethod: 'wallet',
+                    items,
+                    total,
+                    currency: 'INR',
+                    estimatedDelivery: estimatedDeliveryDate
+                }
+            })
+        } catch (error) {
+            console.error('Failed to process wallet payment:', error)
+            const errorMsg = error?.response?.data?.message || 'Failed to process wallet payment'
             window.alert(errorMsg)
         }
     }
@@ -372,7 +423,7 @@ const Cart = () => {
                                 const amount = Number(item?.lineTotal ?? unitAmount * qty)
                                 const currentPrice = Number(product?.price?.amount || 0)
                                 const priceDifference = amount - (currentPrice * qty)
-                                const stock = Number(item?.stock ?? item?.variant?.stock ?? 0)
+                                const stock = Number(item?.stock ?? 0)
                                 const variant = item?.variant
                                 const attrs = variant?.attributes || null
                                 const color = attrs?.color || attrs?.Color || null
@@ -507,17 +558,40 @@ const Cart = () => {
                                     </div>
                                 </div>
 
-                                <div className="flex items-end justify-between pt-4 border-t border-(--border) mb-6">
+                                <div className="flex items-end justify-between pt-4 border-t border-(--border) mb-8">
                                     <span className="text-[10px] uppercase tracking-[0.2em] premium-text-muted">Total</span>
                                     <span className="font-playfair text-3xl">{formatMoney(total)}</span>
                                 </div>
 
+                                {walletBalance > 0 && (
+                                    <div className="mb-4 p-4 border border-(--accent) rounded-lg bg-(--accent)/10">
+                                        <p className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-2">Wallet Balance</p>
+                                        <p className="text-lg font-medium">{formatMoney(walletBalance)}</p>
+                                    </div>
+                                )}
+
                                 <button
                                     onClick={() => openAddressModal()}
-                                    className="btn-accent w-full py-3 sm:py-5 px-4 sm:px-10 text-xs uppercase tracking-[0.2em] font-medium"
+                                    className="btn-accent w-full py-3 sm:py-5 px-4 sm:px-10 text-xs uppercase tracking-[0.2em] font-medium mb-2"
                                 >
                                     Proceed to Purchase
                                 </button>
+
+                                {walletBalance >= total ? (
+                                    <button
+                                        onClick={() => openAddressModal('wallet')}
+                                        className="w-full py-3 sm:py-5 px-4 sm:px-10 text-xs uppercase tracking-[0.2em] font-medium border border-(--accent) text-(--accent) hover:bg-(--accent) hover:text-(--bg-primary) transition-colors"
+                                    >
+                                        Pay with Wallet
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={() => navigate('/wallet')}
+                                        className="w-full py-3 sm:py-5 px-4 sm:px-10 text-xs uppercase tracking-[0.2em] font-medium border border-(--danger) text-(--danger) hover:bg-(--danger) hover:text-white transition-colors"
+                                    >
+                                        Insufficient Balance — Add Money
+                                    </button>
+                                )}
 
                                 <p className="mt-6 text-center text-[10px] uppercase tracking-widest premium-text-muted">
                                     Complimentary delivery on orders above ₹999
@@ -575,7 +649,11 @@ const Cart = () => {
                                 <button className="btn-accent px-4 py-3 text-xs uppercase tracking-[0.2em]" onClick={() => {
                                     if (!selectedAddress) { window.alert('Please select an address'); return }
                                     setShowAddressModal(false)
-                                    handlecheckout(total, 'INR', selectedAddress)
+                                    if (paymentMethod === 'wallet') {
+                                        handlePayWithWallet(selectedAddress)
+                                    } else {
+                                        handlecheckout(total, 'INR', selectedAddress)
+                                    }
                                 }}>Proceed to Payment</button>
                             </div>
                         </div>

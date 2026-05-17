@@ -16,6 +16,7 @@ import reviewsRoutes from '../src/routes/reviews.routes.js';
 import deliveryRoutes from '../src/routes/delivery.routes.js';
 import userRoutes from '../src/routes/user.routes.js';
 import orderRoutes from '../src/routes/order.routes.js';
+import walletRoutes from '../src/routes/wallet.routes.js';
 
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -67,6 +68,7 @@ app.use('/api/reviews', reviewsRoutes);
 app.use('/api/delivery', deliveryRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/wallet', walletRoutes);
 
 const distPath = path.join(__dirname, '../public/dist');
 console.log('Serving static files from:', distPath);

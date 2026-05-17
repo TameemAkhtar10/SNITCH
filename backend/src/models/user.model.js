@@ -78,6 +78,10 @@ let userSChema = new mongoose.Schema({
             }
         }],
         default: []
+    },
+    walletBalance: {
+        type: Number,
+        default: 0
     }
 }
     , { timestamps: true });

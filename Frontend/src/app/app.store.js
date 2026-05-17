@@ -5,6 +5,7 @@ import cartReducer from '../features/Cart/State/cart.slice.js'
 import orderReducer from '../features/Orders/State/order.slice.js'
 import wishlistReducer from '../features/Wishlist/State/wishlist.slice.js'
 import reviewReducer from '../features/Reviews/State/review.slice.js'
+import walletReducer from '../features/Wallet/State/wallet.slice.js'
 
 
 export const store = configureStore({
@@ -15,5 +16,6 @@ export const store = configureStore({
         order: orderReducer,
         wishlist: wishlistReducer,
         review: reviewReducer,
+        wallet: walletReducer,
     }
 }) 
