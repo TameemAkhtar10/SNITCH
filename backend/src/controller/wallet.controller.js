@@ -111,7 +111,7 @@ export const addMoneyToWallet = async (req, res) => {
             razorpayOrder = await razorpay.orders.create({
                 amount: amountInPaisa,
                 currency: "INR",
-                receipt: `wallet-${userId}-${Date.now()}`,
+                receipt: `wl_${Date.now()}`
             });
         } catch (rpError) {
             console.error('Razorpay order creation failed:', rpError?.message || rpError)
