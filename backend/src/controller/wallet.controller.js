@@ -11,10 +11,6 @@ const razorpay = new Razorpay({
 
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
-/**
- * GET /api/wallet/balance
- * Return user's current wallet balance
- */
 export const getWalletBalance = async (req, res) => {
     try {
         const userId = req.user?.id || req.user?._id;
@@ -103,12 +99,24 @@ export const addMoneyToWallet = async (req, res) => {
 
         const amountInPaisa = Math.round(Number(amount) * 100);
 
+        // Verify Razorpay keys are configured
+        if (!config.RAZORPAY_KEY_ID || !config.RAZORPAY_KEY_SECRET) {
+            console.error('Razorpay keys are not configured in environment')
+            return res.status(500).json({ success: false, message: 'Razorpay not configured', data: {} })
+        }
+
         // Create Razorpay order
-        const razorpayOrder = await razorpay.orders.create({
-            amount: amountInPaisa,
-            currency: "INR",
-            receipt: `wallet-${userId}-${Date.now()}`,
-        });
+        let razorpayOrder
+        try {
+            razorpayOrder = await razorpay.orders.create({
+                amount: amountInPaisa,
+                currency: "INR",
+                receipt: `wallet-${userId}-${Date.now()}`,
+            });
+        } catch (rpError) {
+            console.error('Razorpay order creation failed:', rpError?.message || rpError)
+            return res.status(502).json({ success: false, message: 'Failed to create wallet topup order', data: { error: rpError?.message || String(rpError) } })
+        }
 
         return res.status(200).json({
             success: true,
@@ -127,7 +135,7 @@ export const addMoneyToWallet = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: "Failed to create wallet topup order",
-            data: {},
+            data: { error: error?.message || String(error) },
         });
     }
 };
