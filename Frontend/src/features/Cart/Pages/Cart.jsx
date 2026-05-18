@@ -88,12 +88,6 @@ const Cart = () => {
         // Call API in background
         try {
             await updateCartItemHandler(itemId, nextQuantity)
-            // Refresh cart from backend so subtotal and item data are authoritative
-            try {
-                await fetchCart()
-            } catch (fetchError) {
-                console.error('Failed to refetch cart after quantity update:', fetchError)
-            }
         } catch (error) {
             // Revert on failure
             dispatch(updateItemQuantity({ itemId, quantity: previousQuantity }))
