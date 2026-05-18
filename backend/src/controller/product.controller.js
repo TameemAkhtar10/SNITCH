@@ -282,3 +282,50 @@ export const updateproductcontroller = async (req, res) => {
         return res.status(500).json({ success: false, message: "Internal server error", data: {} });
     }
 }
+
+export const bulkUploadProducts = async (req, res) => {
+    try {
+        if (!req.file || !req.file.buffer) {
+            return res.status(400).json({ success: false, message: 'CSV file is required', data: {} });
+        }
+
+        const text = req.file.buffer.toString('utf8');
+        const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+        if (lines.length <= 1) {
+            return res.status(400).json({ success: false, message: 'CSV must contain header and at least one row', data: {} });
+        }
+
+        const header = lines[0].split(',').map(h => h.trim().toLowerCase());
+        const expected = ['title', 'description', 'price', 'currency', 'stock', 'category'];
+        // simple header check
+        const created = [];
+
+        for (let i = 1; i < lines.length; i++) {
+            const row = lines[i];
+            if (!row) continue;
+            const cols = row.split(',').map(c => c.trim());
+            if (cols.length < 6) continue;
+            const [title, description, price, currency, stock, category] = cols;
+            try {
+                const prod = await productModel.create({
+                    title: title || 'Untitled',
+                    description: description || '',
+                    seller: req.user._id,
+                    price: { amount: parseFloat(price) || 0, currency: currency || 'INR' },
+                    stock: parseInt(stock, 10) || 0,
+                    category: category || 'Uncategorized',
+                    images: [],
+                    variants: []
+                });
+                created.push(prod);
+            } catch (e) {
+                console.log('Skipping row', i + 1, e?.message || e);
+            }
+        }
+
+        return res.status(201).json({ success: true, message: `${created.length} products created`, data: { count: created.length } });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ success: false, message: 'Internal server error', data: {} });
+    }
+}

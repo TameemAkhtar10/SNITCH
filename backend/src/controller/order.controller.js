@@ -56,7 +56,7 @@ function buildBillFromOrder(order, customerName) {
 
 export const createOrder = async (req, res) => {
     try {
-        const { items, totalAmount, currency, paymentId, razorpayOrderId, deliveryAddress } = req.body;
+        const { items, totalAmount, currency, paymentId, razorpayOrderId, deliveryAddress, paymentMethod, walletAmountUsed } = req.body;
 
         if (!Array.isArray(items) || items.length === 0) {
             return res.status(400).json({ success: false, message: 'Order items are required', data: {} });
@@ -91,8 +91,11 @@ export const createOrder = async (req, res) => {
             items: normalizedItems,
             totalAmount: parsedTotalAmount,
             currency: currency || 'INR',
-            paymentId: paymentId || null,
-            razorpayOrderId: razorpayOrderId || null,
+            // If COD, skip paymentId/verification
+            paymentMethod: paymentMethod || (walletAmountUsed && walletAmountUsed >= parsedTotalAmount ? 'wallet' : 'online'),
+            paymentId: paymentMethod === 'cod' ? null : (paymentId || null),
+            razorpayOrderId: paymentMethod === 'cod' ? null : (razorpayOrderId || null),
+            walletAmountUsed: Number(walletAmountUsed) || 0,
             deliveryAddress: deliveryAddress || {},
             refundStatus: 'none'
         });

@@ -123,10 +123,17 @@ const Cart = () => {
     const [addressesList, setAddressesList] = React.useState([])
     const [selectedAddress, setSelectedAddress] = React.useState(null)
     const [paymentMethod, setPaymentMethod] = React.useState('razorpay') // 'razorpay' or 'wallet'
+    const [combinedRequested, setCombinedRequested] = React.useState(false)
 
     const openAddressModal = async (method = 'razorpay') => {
         try {
-            setPaymentMethod(method)
+            if (method === 'combined') {
+                setCombinedRequested(true)
+                setPaymentMethod('razorpay')
+            } else {
+                setCombinedRequested(false)
+                setPaymentMethod(method)
+            }
             const list = await fetchAddresses()
             setAddressesList(list)
             if (!list || list.length === 0) {
@@ -278,6 +285,117 @@ const Cart = () => {
             console.error('Failed to process wallet payment:', error)
             const errorMsg = error?.response?.data?.message || 'Failed to process wallet payment'
             window.alert(errorMsg)
+        }
+    }
+
+    const handleCombinedPay = async (deliveryAddress = null) => {
+        try {
+            if (total <= 0) {
+                window.alert('Invalid order total');
+                return;
+            }
+
+            if (!walletBalance || walletBalance <= 0) {
+                window.alert('No wallet balance available');
+                return;
+            }
+
+            // Use entire wallet balance first
+            const walletToUse = Math.min(walletBalance, total);
+            await payWithWalletHandler(walletToUse);
+
+            const remaining = Math.round((total - walletToUse) * 100) / 100;
+
+            if (remaining <= 0) {
+                // Shouldn't reach here as full-wallet case handled elsewhere, but create order with wallet payment
+                const orderItems = buildOrderItems(items);
+                const orderResponse = await createOrderHandler({
+                    items: orderItems,
+                    totalAmount: total,
+                    currency,
+                    paymentMethod: 'wallet',
+                    walletAmountUsed: walletToUse,
+                    deliveryAddress: deliveryAddress || selectedAddress || {}
+                });
+                await clearCartHandler();
+                navigate('/order-successfull', { state: { orderId: orderResponse?.order?._id || null, paymentMethod: 'wallet', items, total, currency, estimatedDelivery: estimatedDeliveryDate } });
+                return;
+            }
+
+            // Create razorpay order for remaining amount
+            if (isLoading || !Razorpay) {
+                window.alert('Payment gateway is still loading. Please try again in a moment.');
+                return;
+            }
+
+            const response = await handlecreateorder(remaining, currency);
+            const razorpayOrder = response?.order || response;
+            const razorpayKey = response?.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID;
+
+            const options = {
+                key: razorpayKey,
+                amount: razorpayOrder.amount,
+                currency: razorpayOrder.currency,
+                name: "Snitch",
+                description: "Test Transaction",
+                order_id: razorpayOrder.id,
+                handler: async (paymentResponse) => {
+                    const isvalid = await handlecheckpayment(paymentResponse);
+                    if (isvalid) {
+                        try {
+                            const orderItems = buildOrderItems(items);
+                            const orderResponse = await createOrderHandler({
+                                items: orderItems,
+                                totalAmount: total,
+                                currency,
+                                paymentId: paymentResponse.razorpay_payment_id,
+                                razorpayOrderId: paymentResponse.razorpay_order_id,
+                                paymentMethod: 'online',
+                                walletAmountUsed: walletToUse,
+                                deliveryAddress: deliveryAddress || selectedAddress || {}
+                            });
+                            const createdOrder = orderResponse?.order || orderResponse?.data?.order || orderResponse?.data?.data?.order || null;
+                            await clearCartHandler();
+                            navigate('/order-successfull', {
+                                state: {
+                                    orderId: createdOrder?._id || paymentResponse.razorpay_order_id,
+                                    backendOrderId: createdOrder?._id || null,
+                                    razorpayOrderId: paymentResponse.razorpay_order_id,
+                                    paymentId: paymentResponse.razorpay_payment_id,
+                                    items,
+                                    total,
+                                    currency,
+                                    estimatedDelivery: estimatedDeliveryDate
+                                }
+                            })
+                        } catch (clearError) {
+                            console.error('Failed to clear cart after payment:', clearError)
+                            window.alert('Payment was successful, but the cart could not be cleared. Please refresh the page.')
+                        }
+                    } else {
+                        window.alert('Payment verification failed. Please contact support if your payment was deducted.')
+                    }
+                },
+                prefill: {
+                    name: user?.fullname || '',
+                    email: user?.email || '',
+                    contact: user?.contact || '',
+                },
+                theme: { color: "#b8860b" }
+            };
+
+            const razorpayInstance = new Razorpay(options);
+            razorpayInstance.on('payment.failed', (paymentError) => {
+                const message = paymentError?.error?.description || 'Payment failed. Please try again.';
+                window.alert(message);
+                console.error('Payment failed:', paymentError);
+            });
+            razorpayInstance.open();
+
+        } catch (error) {
+            console.error('Combined payment failed:', error);
+            const errorMsg = error?.response?.data?.message || 'Failed to process payment';
+            window.alert(errorMsg);
         }
     }
 
@@ -592,12 +710,20 @@ const Cart = () => {
                                         Pay with Wallet
                                     </button>
                                 ) : (
-                                    <button
-                                        onClick={() => navigate('/wallet')}
-                                        className="w-full py-3 sm:py-5 px-4 sm:px-10 text-xs uppercase tracking-[0.2em] font-medium border border-(--danger) text-(--danger) hover:bg-(--danger) hover:text-white transition-colors"
-                                    >
-                                        Insufficient Balance — Add Money
-                                    </button>
+                                    <div className="flex flex-col gap-2">
+                                        <button
+                                            onClick={() => navigate('/wallet')}
+                                            className="w-full py-3 sm:py-5 px-4 sm:px-10 text-xs uppercase tracking-[0.2em] font-medium border border-(--danger) text-(--danger) hover:bg-(--danger) hover:text-white transition-colors"
+                                        >
+                                            Insufficient Balance — Add Money
+                                        </button>
+                                        <button
+                                            onClick={() => openAddressModal('combined')}
+                                            className="w-full py-3 sm:py-5 px-4 sm:px-10 text-xs uppercase tracking-[0.2em] font-medium border border-(--accent) text-(--accent) hover:bg-(--accent) hover:text-(--bg-primary) transition-colors"
+                                        >
+                                            Use wallet balance + pay remaining
+                                        </button>
+                                    </div>
                                 )}
 
                                 <p className="mt-6 text-center text-[10px] uppercase tracking-widest premium-text-muted">
@@ -653,13 +779,43 @@ const Cart = () => {
                             </div>
                             <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end">
                                 <button className="btn-outline px-4 py-3 text-xs uppercase tracking-[0.2em]" onClick={() => setShowAddressModal(false)}>Cancel</button>
-                                <button className="btn-accent px-4 py-3 text-xs uppercase tracking-[0.2em]" onClick={() => {
+                                <div className="flex items-center gap-4 mr-2">
+                                    <label className="text-sm premium-text-muted">Payment:</label>
+                                    <label className="inline-flex items-center gap-2">
+                                        <input type="radio" name="paymethod" value="razorpay" checked={paymentMethod === 'razorpay'} onChange={() => setPaymentMethod('razorpay')} /> Online
+                                    </label>
+                                    <label className="inline-flex items-center gap-2">
+                                        <input type="radio" name="paymethod" value="cod" checked={paymentMethod === 'cod'} onChange={() => setPaymentMethod('cod')} /> COD
+                                    </label>
+                                    <label className="inline-flex items-center gap-2">
+                                        <input type="radio" name="paymethod" value="wallet" checked={paymentMethod === 'wallet'} onChange={() => setPaymentMethod('wallet')} /> Wallet
+                                    </label>
+                                </div>
+                                <button className="btn-accent px-4 py-3 text-xs uppercase tracking-[0.2em]" onClick={async () => {
                                     if (!selectedAddress) { window.alert('Please select an address'); return }
                                     setShowAddressModal(false)
-                                    if (paymentMethod === 'wallet') {
-                                        handlePayWithWallet(selectedAddress)
-                                    } else {
-                                        handlecheckout(total, 'INR', selectedAddress)
+                                    try {
+                                        if (paymentMethod === 'wallet') {
+                                            await handlePayWithWallet(selectedAddress)
+                                        } else if (paymentMethod === 'cod') {
+                                            const orderItems = buildOrderItems(items)
+                                            const orderResponse = await createOrderHandler({
+                                                items: orderItems,
+                                                totalAmount: total,
+                                                currency: 'INR',
+                                                paymentMethod: 'cod',
+                                                deliveryAddress: selectedAddress || {}
+                                            })
+                                            const createdOrder = orderResponse?.order || orderResponse?.data?.order || null
+                                            await clearCartHandler()
+                                            navigate('/order-successfull', { state: { orderId: createdOrder?._id || null, paymentMethod: 'cod', items, total, currency: 'INR', estimatedDelivery: estimatedDeliveryDate } })
+                                        } else if (combinedRequested) {
+                                            await handleCombinedPay(selectedAddress)
+                                        } else {
+                                            await handlecheckout(total, 'INR', selectedAddress)
+                                        }
+                                    } catch (err) {
+                                        console.error(err)
                                     }
                                 }}>Proceed to Payment</button>
                             </div>

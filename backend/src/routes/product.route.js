@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticateUser, authenticateSeller } from "../middleware/auth.middleware.js";
-import { createproductcontroller, getSellerProducts, getAllProducts, getProductById, updateproductcontroller } from "../controller/product.controller.js";
+import { createproductcontroller, getSellerProducts, getAllProducts, getProductById, updateproductcontroller, bulkUploadProducts } from "../controller/product.controller.js";
 import { validateCreateProduct, validateUpdateProduct } from "../validators/product.validator.js";
 const router = Router();
 
@@ -14,6 +14,8 @@ const upload = multer({
 router.get('/seller', authenticateUser, getSellerProducts);
 // Use upload.any() so multiple fieldnames (e.g. 'files' and 'variantFiles_0') are accepted
 router.post('/', upload.any(), authenticateUser, validateCreateProduct, createproductcontroller);
+// Bulk CSV upload - single file field named 'file'
+router.post('/bulk-upload', upload.single('file'), authenticateUser, authenticateSeller, bulkUploadProducts);
 router.put('/:id', upload.any(), authenticateUser, authenticateSeller, validateUpdateProduct, updateproductcontroller);
 
 // Generic routes

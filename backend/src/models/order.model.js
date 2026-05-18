@@ -82,6 +82,16 @@ const OrderSchema = new mongoose.Schema(
             type: String,
             default: null,
         },
+        paymentMethod: {
+            type: String,
+            enum: ['online', 'cod', 'wallet'],
+            default: 'online'
+        },
+        walletAmountUsed: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
         deliveryAddress: {
             name: String,
             phone: String,

@@ -33,6 +33,9 @@ const Dashboard = () => {
     const [filter, setFilter] = useState("all");
 
     const { isDark, toggleDark } = useDarkMode();
+    const [showBulkUpload, setShowBulkUpload] = useState(false);
+    const [csvFile, setCsvFile] = useState(null);
+    const [bulkMessage, setBulkMessage] = useState('');
 
     useEffect(() => {
         fetchProducts();
@@ -159,6 +162,12 @@ const Dashboard = () => {
                         [+ Add]
                     </button>
                     <button
+                        onClick={() => setShowBulkUpload((s) => !s)}
+                        className="shrink-0 text-xs uppercase tracking-widest whitespace-nowrap premium-text-muted hover:text-[var(--text-primary)] transition-colors"
+                    >
+                        Bulk Upload
+                    </button>
+                    <button
                         onClick={() => navigate("/seller/orders")}
                         className="shrink-0 text-xs uppercase tracking-widest whitespace-nowrap text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
                     >
@@ -166,6 +175,41 @@ const Dashboard = () => {
                     </button>
                 </div>
             </header>
+
+            {showBulkUpload && (
+                <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-12 py-4">
+                    <div className="premium-surface border border-[var(--border)] p-4 rounded-lg">
+                        <p className="text-sm premium-text-muted mb-2">CSV format: title, description, price, currency, stock, category</p>
+                        <div className="flex items-center gap-3">
+                            <input type="file" accept=".csv" onChange={(e) => setCsvFile(e.target.files?.[0] || null)} />
+                            <button
+                                onClick={async () => {
+                                    setBulkMessage('');
+                                    if (!csvFile) { setBulkMessage('Please select a CSV file'); return }
+                                    try {
+                                        const fd = new FormData();
+                                        fd.append('file', csvFile);
+                                        const res = await fetch('https://snitch-aukv.onrender.com/api/products/bulk-upload', { method: 'POST', body: fd, credentials: 'include' });
+                                        const data = await res.json();
+                                        if (!res.ok) throw data;
+                                        const count = data?.data?.count ?? 0;
+                                        setBulkMessage(`Success: ${count} products created`);
+                                        setCsvFile(null);
+                                        await fetchProducts();
+                                    } catch (err) {
+                                        console.error(err);
+                                        setBulkMessage(err?.message || err?.data?.message || 'Upload failed');
+                                    }
+                                }}
+                                className="text-xs uppercase tracking-widest premium-text-muted hover:text-[var(--text-primary)] transition-colors"
+                            >
+                                Upload CSV
+                            </button>
+                        </div>
+                        {bulkMessage && <p className="mt-2 text-sm">{bulkMessage}</p>}
+                    </div>
+                </div>
+            )}
 
             <main className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-12 py-12 sm:py-16 lg:py-24">
                 <div className="mb-16">
