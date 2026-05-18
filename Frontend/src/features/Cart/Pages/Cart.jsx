@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { useCart } from '../Hooks/UseCart.js'
-import { updateItemQuantity } from '../State/cart.slice.js'
+import { updateItemQuantity, setCartTotals } from '../State/cart.slice.js'
 import { useRazorpay } from "react-razorpay";
 import { useOrder } from '../../Orders/Hooks/useOrder.js'
 import useAddress from '../../User/Hooks/useAddress.js'
@@ -79,6 +79,11 @@ const Cart = () => {
 
         // Optimistically update Redux state
         dispatch(updateItemQuantity({ itemId, quantity: nextQuantity }))
+
+        // Instantly recalculate subtotal locally and update cart totals
+        const updatedItems = items.map(i => i._id === itemId ? { ...i, quantity: nextQuantity } : i)
+        const newSubtotal = updatedItems.reduce((sum, i) => sum + (Number(i.amount || 0) * Number(i.quantity || 0)), 0)
+        dispatch(setCartTotals({ subtotal: newSubtotal, totalItems: newSubtotal, itemCount: items.length }))
 
         // Call API in background
         try {
