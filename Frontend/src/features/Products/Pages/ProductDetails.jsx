@@ -77,8 +77,10 @@ const ProductDetails = () => {
     const [currentImageIndex, setCurrentImageIndex] = React.useState(0)
     const [variantImageIndex, setVariantImageIndex] = React.useState({})
     const [selectedVariantIndex, setSelectedVariantIndex] = React.useState(null)
+    const [selectedColorOption, setSelectedColorOption] = React.useState(null)
     const [selectedSizeOption, setSelectedSizeOption] = React.useState(null)
     const [cartLoading, setCartLoading] = React.useState(false)
+    const [buyNowLoading, setBuyNowLoading] = React.useState(false)
     const [cartMessage, setCartMessage] = React.useState("")
     const [wishlistLoading, setWishlistLoading] = React.useState(false)
     const [reviewRating, setReviewRating] = React.useState(5)
@@ -162,7 +164,7 @@ const ProductDetails = () => {
         new Set(variants.flatMap((v) => getVariantSizes(v)).filter(Boolean))
     )
 
-    const selectedColor = selectedVariant ? getVariantAttr(selectedVariant, 'color') : null
+    const selectedColor = selectedColorOption || (selectedVariant ? getVariantAttr(selectedVariant, 'color') : null)
     const selectedSize = selectedSizeOption || (selectedVariant ? getVariantSizes(selectedVariant)[0] : null)
 
     const chooseVariantIndex = ({ color, size }) => {
@@ -189,21 +191,29 @@ const ProductDetails = () => {
     }
 
     const handleSelectColor = (color) => {
-        const nextIndex = chooseVariantIndex({ color, size: selectedSizeOption || selectedSize })
+        setSelectedColorOption(color)
+
+        if (!selectedSizeOption) return
+
+        const nextIndex = chooseVariantIndex({ color, size: selectedSizeOption })
         if (nextIndex === null) return
         setSelectedVariantIndex(nextIndex)
         setVariantImageIndex(prev => ({ ...prev, [nextIndex]: 0 }))
     }
 
     const handleSelectSize = (size) => {
+        setSelectedSizeOption(size)
+
+        if (!selectedColor) return
+
         const nextIndex = chooseVariantIndex({ color: selectedColor, size })
         if (nextIndex === null) return
-        setSelectedSizeOption(size)
         setSelectedVariantIndex(nextIndex)
         setVariantImageIndex(prev => ({ ...prev, [nextIndex]: 0 }))
     }
 
     const handleClearSelection = () => {
+        setSelectedColorOption(null)
         setSelectedVariantIndex(null)
         setSelectedSizeOption(null)
         setCurrentImageIndex(0)
@@ -211,7 +221,6 @@ const ProductDetails = () => {
 
     useEffect(() => {
         if (selectedVariantIndex === null) {
-            if (selectedSizeOption !== null) setSelectedSizeOption(null)
             return
         }
 
@@ -263,6 +272,7 @@ const ProductDetails = () => {
 
     useEffect(() => {
         handleGetProductById(productId)
+        setSelectedColorOption(null)
         setSelectedVariantIndex(null)
         setSelectedSizeOption(null)
         setCurrentImageIndex(0)
@@ -367,25 +377,6 @@ const ProductDetails = () => {
         }
     }
 
-    const handleBuy = () => {
-        if (!token) {
-            navigate('/login', { state: { from: `/product/${productId}` } })
-        } else {
-            const variantId = selectedVariant?._id || null
-            const variantIndex = selectedVariantIndex ?? null
-
-            navigate(`/checkout/${productId}`, {
-                state: {
-                    quantity,
-                    variantId,
-                    variantIndex,
-                    color: selectedColor,
-                    size: selectedSize
-                }
-            })
-        }
-    }
-
     const handleAddToCart = async () => {
         if (displayedStock === 0) {
             setCartMessage("❌ Out of stock!")
@@ -424,8 +415,36 @@ const ProductDetails = () => {
         }
     }
 
-    const handleBuyNow = () => {
-        handleBuy()
+    const handleBuyNow = async () => {
+        if (displayedStock === 0) {
+            setCartMessage("❌ Out of stock!")
+            setTimeout(() => setCartMessage(""), 3000)
+            return
+        }
+
+        if (!token) {
+            navigate('/login', { state: { from: `/product/${productId}` } })
+            return
+        }
+
+        setBuyNowLoading(true)
+        try {
+            const variantId = selectedVariant ? selectedVariant._id : productId
+
+            const cartData = {
+                quantity: quantity,
+                amount: displayedPrice,
+                currency: displayedCurrency
+            }
+
+            await addToCarthandler(productId, variantId, cartData)
+            navigate('/cart')
+        } catch {
+            setCartMessage("❌ Failed to add to cart")
+            setTimeout(() => setCartMessage(""), 3000)
+        } finally {
+            setBuyNowLoading(false)
+        }
     }
 
     const themeStyles = isDark ? `
@@ -773,10 +792,10 @@ const ProductDetails = () => {
                             </button>
                             <button
                                 onClick={handleBuyNow}
-                                disabled={displayedStock === 0}
+                                disabled={displayedStock === 0 || buyNowLoading || cartLoading}
                                 className="btn-outline w-full py-5 text-xs uppercase tracking-[0.2em] font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                {token ? 'Purchase Now' : 'Login to Purchase'}
+                                {buyNowLoading ? 'Adding...' : token ? 'Purchase Now' : 'Login to Purchase'}
                             </button>
                         </div>
 
