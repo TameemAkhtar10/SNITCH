@@ -189,7 +189,7 @@ const Dashboard = () => {
                                     try {
                                         const fd = new FormData();
                                         fd.append('file', csvFile);
-                                        const res = await fetch('https://snitch-aukv.onrender.com/api/products/bulk-upload', { method: 'POST', body: fd, credentials: 'include' });
+                                        const res = await fetch('https://snitch-aukv.onrender.com/api/product/bulk-upload', { method: 'POST', body: fd, credentials: 'include' });
                                         const data = await res.json();
                                         if (!res.ok) throw data;
                                         const count = data?.data?.count ?? 0;
