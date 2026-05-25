@@ -325,15 +325,24 @@ const Home = () => {
                 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
                 @keyframes shimmer {
-                    0% { background-position: -200% 0; }
-                    100% { background-position: 200% 0; }
-                }
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
 
-                .skeleton {
-                    background: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
-                    background-size: 200% 100%;
-                    animation: shimmer 1.5s infinite;
-                }
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--bg-secondary) 85%, transparent) 25%,
+        color-mix(in srgb, var(--text-primary) 12%, var(--bg-secondary)) 50%,
+        color-mix(in srgb, var(--bg-secondary) 85%, transparent) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.8s ease-in-out infinite;
+}
             `}</style>
 
             <Navbar
