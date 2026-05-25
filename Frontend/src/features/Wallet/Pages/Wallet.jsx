@@ -34,10 +34,11 @@ const Wallet = () => {
   const [showAddMoneyModal, setShowAddMoneyModal] = useState(false);
   const [addMoneyAmount, setAddMoneyAmount] = useState("");
   const [addMoneyError, setAddMoneyError] = useState("");
+  const [addingMoney, setAddingMoney] = useState(false);
 
   useEffect(() => {
-    fetchBalance().catch(() => {});
-    fetchTransactions().catch(() => {});
+    fetchBalance().catch(() => { });
+    fetchTransactions().catch(() => { });
   }, [fetchBalance, fetchTransactions]);
 
   const formatMoney = (value) => {
@@ -89,6 +90,8 @@ const Wallet = () => {
         return;
       }
 
+      setAddingMoney(true);
+
       const options = {
         key: razorpayKey,
         amount: razorpayOrder.amount,
@@ -109,6 +112,7 @@ const Wallet = () => {
               window.alert("✓ Money added to wallet successfully!");
               setShowAddMoneyModal(false);
               setAddMoneyAmount("");
+              setAddingMoney(false);
               // Refresh balance and transactions
               try {
                 await fetchBalance();
@@ -119,12 +123,14 @@ const Wallet = () => {
             }
           } catch (err) {
             setAddMoneyError("Payment verification failed. Please try again.");
+            setAddingMoney(false);
             console.error("Verification error:", err);
           }
         },
         modal: {
           ondismiss: () => {
             console.log("Payment popup closed by user");
+            setAddingMoney(false);
           },
         },
         prefill: {
@@ -141,12 +147,14 @@ const Wallet = () => {
         const message =
           paymentError?.error?.description || "Payment failed. Please try again.";
         setAddMoneyError(message);
+        setAddingMoney(false);
         console.error("Payment failed:", paymentError);
       });
       razorpayInstance.open();
     } catch (err) {
       const errorMsg = err?.response?.data?.message || "Failed to create payment order";
       setAddMoneyError(errorMsg);
+      setAddingMoney(false);
       console.error("Add money error:", err);
     }
   };
@@ -342,11 +350,10 @@ const Wallet = () => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-2">
                           <span
-                            className={`text-xs uppercase tracking-widest font-medium px-2 py-1 rounded ${
-                              transaction.type === "credit"
+                            className={`text-xs uppercase tracking-widest font-medium px-2 py-1 rounded ${transaction.type === "credit"
                                 ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
                                 : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100"
-                            }`}
+                              }`}
                           >
                             {transaction.type === "credit" ? "Credit" : "Debit"}
                           </span>
@@ -360,11 +367,10 @@ const Wallet = () => {
                       </div>
                       <div className="text-right ml-4">
                         <p
-                          className={`font-playfair text-lg sm:text-2xl font-medium ${
-                            transaction.type === "credit"
+                          className={`font-playfair text-lg sm:text-2xl font-medium ${transaction.type === "credit"
                               ? "text-(--success)"
                               : "text-(--danger)"
-                          }`}
+                            }`}
                         >
                           {transaction.type === "credit" ? "+" : "-"}
                           {formatMoney(transaction.amount)}
@@ -463,10 +469,10 @@ const Wallet = () => {
             <div className="flex flex-col gap-3">
               <button
                 onClick={handleAddMoney}
-                disabled={loading || isLoading}
+                disabled={addingMoney || isLoading}
                 className="btn-accent w-full py-3 px-4 text-xs uppercase tracking-[0.2em] font-medium disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {loading || isLoading ? "Processing..." : "Proceed to Payment"}
+                {addingMoney || isLoading ? "Processing..." : "Proceed to Payment"}
               </button>
               <button
                 onClick={() => {
