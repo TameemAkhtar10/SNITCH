@@ -207,6 +207,7 @@ const Home = () => {
     const categories = ['All Products', 'Men', 'Women', 'Kids', 'Accessories', 'Seasonal']
 
     const { isDark, toggleDark } = useDarkMode()
+    const skeletonCards = Array.from({ length: 7 })
 
     const themeStyles = isDark ? `
         :root {
@@ -322,6 +323,17 @@ const Home = () => {
                 ::-webkit-scrollbar { width: 4px; }
                 ::-webkit-scrollbar-track { background: var(--bg-primary); }
                 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+                @keyframes shimmer {
+                    0% { background-position: -200% 0; }
+                    100% { background-position: 200% 0; }
+                }
+
+                .skeleton {
+                    background: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
+                    background-size: 200% 100%;
+                    animation: shimmer 1.5s infinite;
+                }
             `}</style>
 
             <Navbar
@@ -497,9 +509,27 @@ const Home = () => {
                     </div>
 
                     {loading ? (
-                        <div className="flex flex-col items-center justify-center py-40">
-                            <div className="w-12 h-12 border-2 border-t-transparent border-[var(--text-primary)] rounded-full animate-spin mb-4"></div>
-                            <p className="tracking-[0.2em] text-xs font-medium premium-text-muted uppercase">Curating Collection...</p>
+                        <div className="grid gap-x-8 gap-y-16 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                            {skeletonCards.map((_, index) => (
+                                <div key={index} className="flex flex-col">
+                                    <div className="relative aspect-[3/4] w-full rounded-[10px] skeleton" />
+
+                                    <div className="mt-6 flex flex-col flex-1">
+                                        <div className="flex items-start justify-between gap-4 mb-2">
+                                            <div className="h-4 w-3/4 rounded skeleton" />
+                                            <div className="h-4 w-1/4 rounded skeleton" />
+                                        </div>
+
+                                        <div className="h-4 w-full rounded skeleton mt-2" />
+                                        <div className="h-4 w-5/6 rounded skeleton mt-2" />
+
+                                        <div className="mt-auto flex items-center justify-between border-t border-[var(--border)] pt-4 opacity-0">
+                                            <div className="h-3 w-24 rounded skeleton" />
+                                            <div className="h-3 w-20 rounded skeleton" />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     ) : filteredProducts.length > 0 ? (
                         <div className="grid gap-x-8 gap-y-16 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
