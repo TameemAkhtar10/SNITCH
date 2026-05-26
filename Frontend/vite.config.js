@@ -9,5 +9,15 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          gsap: ['gsap'],
+        },
+      },
+    },
+  },
+  optimizeDeps: {
+    include: ['gsap'],
   },
 })
