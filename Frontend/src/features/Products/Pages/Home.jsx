@@ -1,12 +1,23 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import UseProduct from '../Hooks/UseProduct'
 import UseWishlist from '../../Wishlist/Hooks/UseWishlist.js'
 import { getRecentlyViewed } from '../services/recentlyViewed.service.js'
 import { useAuth } from '../../auth/hooks/useAuth.js'
 import { setuser as setAuthUser } from '../../auth/state/auth.slice.js'
 import Navbar from '../../../components/Navbar.jsx'
+
+gsap.registerPlugin(ScrollTrigger)
+
+const LOADER_TEXT = 'SNITCH'
+const LOADER_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&'
+const HERO_VIDEO_URL = '/Dark Minimalism Fashion Editorial.mp4'
+const MARQUEE_TEXT = 'SNITCH • THE NEW COLLECTION • PREMIUM FASHION • '
+
+const getRandomLoaderChar = () => LOADER_CHARS[Math.floor(Math.random() * LOADER_CHARS.length)]
 
 const getToken = () => {
     const match = document.cookie.match(new RegExp("(^| )token=([^;]+)"));
@@ -42,7 +53,23 @@ const Home = () => {
     const navigate = useNavigate()
     const searchInputRef = useRef(null)
     const catalogSectionRef = useRef(null)
+    const heroSectionRef = useRef(null)
+    const heroTextContainerRef = useRef(null)
+    const heroTitleTopRef = useRef(null)
+    const heroTitleBottomRef = useRef(null)
+    const heroSubtitleRef = useRef(null)
+    const heroCtaRef = useRef(null)
+    const marqueeTrackRef = useRef(null)
+    const productGridRef = useRef(null)
+    const loaderRef = useRef(null)
+    const loaderTextRef = useRef(null)
+    const mainContentRef = useRef(null)
+    const scrambleIntervalRef = useRef(null)
+    const exitTimeoutRef = useRef(null)
+    const isAnimatingRef = useRef(false)
     const [loading, setLoading] = useState(true)
+    const [introLoaderVisible, setIntroLoaderVisible] = useState(true)
+    const [loaderText, setLoaderText] = useState(LOADER_TEXT)
     const [searchQuery, setSearchQuery] = useState('')
     const [searchInputOpen, setSearchInputOpen] = useState(false)
     const [selectedCategory, setSelectedCategory] = useState('All Products')
@@ -142,6 +169,174 @@ const Home = () => {
         }
     }, [searchInputOpen])
 
+    useEffect(() => {
+        const heroSectionElement = heroSectionRef.current
+        const heroTextContainerElement = heroTextContainerRef.current
+
+        if (!heroSectionElement || !heroTextContainerElement) return
+
+        const handleMouseMove = (event) => {
+            const bounds = heroSectionElement.getBoundingClientRect()
+            const deltaX = event.clientX - (bounds.left + bounds.width / 2)
+            const deltaY = event.clientY - (bounds.top + bounds.height / 2)
+            const rotateY = Math.max(-8, Math.min(8, (deltaX / bounds.width) * 16))
+            const rotateX = Math.max(-8, Math.min(8, -(deltaY / bounds.height) * 16))
+
+            gsap.to(heroTextContainerElement, {
+                rotateX,
+                rotateY,
+                duration: 0.45,
+                ease: 'power3.out',
+                overwrite: true,
+            })
+        }
+
+        const handleMouseLeave = () => {
+            gsap.to(heroTextContainerElement, {
+                rotateX: 0,
+                rotateY: 0,
+                duration: 0.6,
+                ease: 'power3.out',
+                overwrite: true,
+            })
+        }
+
+        heroSectionElement.addEventListener('mousemove', handleMouseMove)
+        heroSectionElement.addEventListener('mouseleave', handleMouseLeave)
+
+        return () => {
+            heroSectionElement.removeEventListener('mousemove', handleMouseMove)
+            heroSectionElement.removeEventListener('mouseleave', handleMouseLeave)
+        }
+    }, [])
+
+    useEffect(() => {
+        if (introLoaderVisible) return
+
+        const heroTimeline = gsap.timeline()
+
+        heroTimeline
+            .fromTo(heroTitleTopRef.current, { x: -100, opacity: 0 }, { x: 0, opacity: 1, duration: 0.9, ease: 'power3.out' })
+            .fromTo(heroTitleBottomRef.current, { x: 100, opacity: 0 }, { x: 0, opacity: 1, duration: 0.9, ease: 'power3.out' }, '-=0.5')
+            .fromTo(heroSubtitleRef.current, { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.65, ease: 'power2.out' }, '-=0.25')
+            .fromTo(heroCtaRef.current, { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: 'power2.out' }, '-=0.2')
+
+        return () => {
+            heroTimeline.kill()
+        }
+    }, [introLoaderVisible])
+
+    useEffect(() => {
+        if (introLoaderVisible || loading || !filteredProducts.length || !productGridRef.current) return
+
+        const productCards = productGridRef.current.querySelectorAll('.product-card')
+
+        if (!productCards.length) return
+
+        const scopeElement = productGridRef.current
+
+        const ctx = gsap.context(() => {
+            gsap.from(productCards, {
+                scrollTrigger: {
+                    trigger: scopeElement,
+                    start: 'top 80%',
+                },
+                y: 60,
+                opacity: 0,
+                stagger: 0.1,
+                duration: 0.6,
+                ease: 'power2.out',
+            })
+        }, scopeElement)
+
+        return () => {
+            ctx.revert()
+        }
+    }, [introLoaderVisible, loading, filteredProducts.length])
+
+    useEffect(() => {
+        const marqueeElement = marqueeTrackRef.current
+
+        if (!marqueeElement) return
+
+        const tween = gsap.to(marqueeElement, {
+            x: '-50%',
+            duration: 15,
+            repeat: -1,
+            ease: 'none',
+        })
+
+        return () => {
+            tween.kill()
+        }
+    }, [])
+
+    useEffect(() => {
+        const loaderElement = loaderRef.current
+        const loaderTextElement = loaderTextRef.current
+        const mainContentElement = mainContentRef.current
+
+        if (!loaderElement || !loaderTextElement || !mainContentElement || isAnimatingRef.current) return
+
+        isAnimatingRef.current = true
+        setLoaderText(Array.from({ length: LOADER_TEXT.length }, () => getRandomLoaderChar()).join(''))
+
+        gsap.set(mainContentElement, { opacity: 0 })
+
+        let resolvedCount = 0
+
+        scrambleIntervalRef.current = window.setInterval(() => {
+            resolvedCount = Math.min(resolvedCount + 1, LOADER_TEXT.length)
+
+            const nextText = LOADER_TEXT.split('').map((character, index) => {
+                if (index < resolvedCount) {
+                    return character
+                }
+
+                return getRandomLoaderChar()
+            }).join('')
+
+            setLoaderText(nextText)
+
+            if (resolvedCount >= LOADER_TEXT.length) {
+                window.clearInterval(scrambleIntervalRef.current)
+                scrambleIntervalRef.current = null
+
+                exitTimeoutRef.current = window.setTimeout(() => {
+                    gsap.to(mainContentElement, {
+                        opacity: 1,
+                        duration: 0.8,
+                        ease: 'power2.out',
+                    })
+
+                    gsap.to(loaderElement, {
+                        y: '-100%',
+                        duration: 0.8,
+                        ease: 'power4.inOut',
+                        onComplete: () => {
+                            setIntroLoaderVisible(false)
+                            gsap.set(loaderElement, { display: 'none' })
+                        },
+                    })
+                }, 800)
+            }
+        }, 80)
+
+        return () => {
+            if (scrambleIntervalRef.current) {
+                window.clearInterval(scrambleIntervalRef.current)
+                scrambleIntervalRef.current = null
+            }
+
+            if (exitTimeoutRef.current) {
+                window.clearTimeout(exitTimeoutRef.current)
+                exitTimeoutRef.current = null
+            }
+
+            isAnimatingRef.current = false
+        }
+    }, [])
+
     const handleSearchFocus = () => {
         setSearchInputOpen(true)
     }
@@ -235,6 +430,19 @@ const Home = () => {
 
     return (
         <div className="min-h-screen font-outfit premium-bg premium-text transition-colors duration-500">
+            {introLoaderVisible && (
+                <div
+                    ref={loaderRef}
+                    className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-black"
+                >
+                    <div
+                        ref={loaderTextRef}
+                        className="flex items-center gap-[0.35em] font-playfair text-[clamp(4rem,8vw,8rem)] tracking-[0.35em] text-white"
+                    >
+                        {loaderText}
+                    </div>
+                </div>
+            )}
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap');
                 
@@ -345,317 +553,338 @@ const Home = () => {
 }
             `}</style>
 
-            <Navbar
-                searchInputOpen={searchInputOpen}
-                setSearchInputOpen={setSearchInputOpen}
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                drawerOpen={drawerOpen}
-                setDrawerOpen={setDrawerOpen}
-                profileMenuOpen={profileMenuOpen}
-                setProfileMenuOpen={setProfileMenuOpen}
-                isDark={isDark}
-                toggleDark={toggleDark}
-                catalogSectionRef={catalogSectionRef}
-                handleSearchFocus={handleSearchFocus}
-                handleSearchSubmit={handleSearchSubmit}
-                handleProfileClick={handleProfileClick}
-                handleLogout={handleLogout}
-                user={user}
-                initializing={initializing}
-                cartItemCount={cartItemCount}
-                wishlistItemCount={wishlistItemCount}
-                drawerLinks={drawerLinks}
-                token={token}
-            />
+            <div ref={mainContentRef} style={{ opacity: 0 }}>
+                <Navbar
+                    searchInputOpen={searchInputOpen}
+                    setSearchInputOpen={setSearchInputOpen}
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
+                    drawerOpen={drawerOpen}
+                    setDrawerOpen={setDrawerOpen}
+                    profileMenuOpen={profileMenuOpen}
+                    setProfileMenuOpen={setProfileMenuOpen}
+                    isDark={isDark}
+                    toggleDark={toggleDark}
+                    catalogSectionRef={catalogSectionRef}
+                    handleSearchFocus={handleSearchFocus}
+                    handleSearchSubmit={handleSearchSubmit}
+                    handleProfileClick={handleProfileClick}
+                    handleLogout={handleLogout}
+                    user={user}
+                    initializing={initializing}
+                    cartItemCount={cartItemCount}
+                    wishlistItemCount={wishlistItemCount}
+                    drawerLinks={drawerLinks}
+                    token={token}
+                />
 
-            {token && !initializing && profileMenuOpen && (
-                <div className="absolute right-6 top-24 z-[55] w-64 premium-surface border border-[var(--border)] p-4 shadow-2xl">
-                    <div className="px-4 py-4 border-b border-[var(--border)]">
-                        <p className="font-playfair text-xl mb-1">{user?.fullname || 'Client'}</p>
-                        <p className="text-[10px] tracking-widest uppercase premium-text-muted truncate">{user?.email}</p>
-                        {user?.role === 'seller' && <p className="mt-2 text-[9px] uppercase tracking-[0.2em] text-[var(--accent)]">Curator Account</p>}
-                    </div>
+                {token && !initializing && profileMenuOpen && (
+                    <div className="absolute right-6 top-24 z-[55] w-64 premium-surface border border-[var(--border)] p-4 shadow-2xl">
+                        <div className="px-4 py-4 border-b border-[var(--border)]">
+                            <p className="font-playfair text-xl mb-1">{user?.fullname || 'Client'}</p>
+                            <p className="text-[10px] tracking-widest uppercase premium-text-muted truncate">{user?.email}</p>
+                            {user?.role === 'seller' && <p className="mt-2 text-[9px] uppercase tracking-[0.2em] text-[var(--accent)]">Curator Account</p>}
+                        </div>
 
-                    <div className="flex flex-col gap-2 py-4">
-                        {user?.role === 'seller' ? (
-                            <>
-                                <button onClick={() => { setProfileMenuOpen(false); navigate('/seller'); }} className="px-4 py-2 text-xs uppercase tracking-widest premium-text-muted hover:text-[var(--text-primary)] text-left transition-colors">
-                                    Dashboard
-                                </button>
-                                <button onClick={() => { setProfileMenuOpen(false); navigate('/seller/create-product'); }} className="px-4 py-2 text-xs uppercase tracking-widest premium-text-muted hover:text-[var(--text-primary)] text-left transition-colors">
-                                    Add Piece
-                                </button>
-                            </>
-                        ) : (
-                            <>
-                                <button onClick={() => { setProfileMenuOpen(false); navigate('/profile'); }} className="px-4 py-2 text-xs uppercase tracking-widest premium-text-muted hover:text-[var(--text-primary)] text-left transition-colors">
-                                    Profile
-                                </button>
-                                <button onClick={() => {
-                                    navigate('/orders'); setProfileMenuOpen(false);
-                                }} className="px-4 py-2 text-xs uppercase tracking-widest premium-text-muted hover:text-[var(--text-primary)] text-left transition-colors">
-                                    Purchase History
-                                </button>
-                                <button onClick={() => {
-                                    navigate('/wallet'); setProfileMenuOpen(false);
-                                }} className="px-4 py-2 text-xs uppercase tracking-widest premium-text-muted hover:text-[var(--text-primary)] text-left transition-colors">
-                                    Wallet
-                                </button>
-                            </>
-                        )}
-
-                        <button onClick={handleLogout} className="mt-4 px-4 py-2 text-[10px] uppercase tracking-[0.2em] text-[var(--danger)] text-left transition-colors">
-                            Sign Out
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            <main>
-                {/* Hero Section */}
-                <div className="relative h-screen w-full overflow-hidden flex flex-col items-center justify-center">
-                    <div
-                        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                        style={{
-                            backgroundImage: 'url(https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=1200)',
-                        }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-black/70" />
-
-                    <div className="relative z-10 text-center flex flex-col items-center justify-center px-6">
-                        <h1 className="font-playfair text-5xl sm:text-7xl lg:text-8xl font-medium leading-tight mb-6 text-white tracking-tight">
-                            THE NEW COLLECTION
-                        </h1>
-                        <p className="text-white text-sm sm:text-base font-light max-w-xl mx-auto mb-12 leading-relaxed">
-                            Discover exceptional pieces curated for the modern connoisseur.
-                        </p>
-                        <button
-                            onClick={() => goToSection(catalogSectionRef)}
-                            className="px-8 sm:px-12 py-3 sm:py-4 bg-white text-black font-semibold uppercase tracking-[0.15em] text-xs sm:text-sm hover:bg-gray-200 transition-all duration-300"
-                        >
-                            Shop Now
-                        </button>
-                    </div>
-                </div>
-
-                <div className="mx-auto max-w-[1600px] px-6 sm:px-12 py-16">
-                    <div className="border border-[var(--border)]  rounded-[12px] p-8 sm:p-10 mb-16 shadow-lg transition-all duration-500">
-                        <div className="flex flex-col gap-4">
-                            {/* Filter Header */}
-                            <div className="flex items-center justify-between">
-                                <div>
-
-                                    <h3 className="font-playfair text-lg font-medium">Filter Pieces</h3>
-                                </div>
-                                {(minPrice || maxPrice || selectedCategory !== 'All Products') && (
-                                    <button
-                                        onClick={() => {
-                                            setMinPrice('');
-                                            setMaxPrice('');
-                                            setSelectedCategory('All Products');
-                                        }}
-                                        className="text-[9px] uppercase tracking-[0.2em] text-[var(--accent)] hover:text-[var(--text-primary)] transition-colors border border-[var(--accent)] px-3 py-1.5 rounded-[6px] hover:border-[var(--text-primary)]"
-                                    >
-                                        Reset All
+                        <div className="flex flex-col gap-2 py-4">
+                            {user?.role === 'seller' ? (
+                                <>
+                                    <button onClick={() => { setProfileMenuOpen(false); navigate('/seller'); }} className="px-4 py-2 text-xs uppercase tracking-widest premium-text-muted hover:text-[var(--text-primary)] text-left transition-colors">
+                                        Dashboard
                                     </button>
-                                )}
-                            </div>
+                                    <button onClick={() => { setProfileMenuOpen(false); navigate('/seller/create-product'); }} className="px-4 py-2 text-xs uppercase tracking-widest premium-text-muted hover:text-[var(--text-primary)] text-left transition-colors">
+                                        Add Piece
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <button onClick={() => { setProfileMenuOpen(false); navigate('/profile'); }} className="px-4 py-2 text-xs uppercase tracking-widest premium-text-muted hover:text-[var(--text-primary)] text-left transition-colors">
+                                        Profile
+                                    </button>
+                                    <button onClick={() => {
+                                        navigate('/orders'); setProfileMenuOpen(false);
+                                    }} className="px-4 py-2 text-xs uppercase tracking-widest premium-text-muted hover:text-[var(--text-primary)] text-left transition-colors">
+                                        Purchase History
+                                    </button>
+                                    <button onClick={() => {
+                                        navigate('/wallet'); setProfileMenuOpen(false);
+                                    }} className="px-4 py-2 text-xs uppercase tracking-widest premium-text-muted hover:text-[var(--text-primary)] text-left transition-colors">
+                                        Wallet
+                                    </button>
+                                </>
+                            )}
 
-                            {/* Category Filter */}
-                            <div className="flex flex-col gap-3">
-
-                                <div className="flex flex-wrap gap-3">
-
-                                </div>
-                            </div>
-
-                            {/* Price Filter */}
-                            <div className="flex flex-col gap-3">
-                                <label className="text-[9px] uppercase tracking-[0.2em] premium-text-muted font-medium">Price Range</label>
-                                <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
-                                    <div className="flex-1 flex flex-col gap-2">
-                                        <span className="text-[8px] uppercase tracking-[0.15em] premium-text-muted">From</span>
-                                        <div className="relative">
-                                            <input
-                                                type="number"
-                                                value={minPrice}
-                                                onChange={(e) => setMinPrice(e.target.value)}
-                                                placeholder="₹0"
-                                                className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-[8px] px-4 py-3 text-sm font-light premium-text placeholder-[var(--text-secondary)] transition-all duration-300 focus:outline-none focus:border-[var(--accent)] focus:shadow-md"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="flex-1 flex flex-col gap-2">
-                                        <span className="text-[8px] uppercase tracking-[0.15em] premium-text-muted">To</span>
-                                        <div className="relative">
-                                            <input
-                                                type="number"
-                                                value={maxPrice}
-                                                onChange={(e) => setMaxPrice(e.target.value)}
-                                                placeholder="₹999999"
-                                                className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-[8px] px-4 py-3 text-sm font-light premium-text placeholder-[var(--text-secondary)] transition-all duration-300 focus:outline-none focus:border-[var(--accent)] focus:shadow-md"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div ref={catalogSectionRef} className="mx-auto max-w-[1600px] px-6 sm:px-12 py-20">
-                    <div className="flex items-end justify-between mb-16 border-b border-[var(--border)] pb-8">
-                        <div>
-                            <p className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-4">Edition</p>
-                            <h2 className="font-playfair text-4xl">
-                                {searchQuery ? `Results for "${searchQuery}"` : 'Featured Assortment'}
-                            </h2>
-                        </div>
-                        <span className="text-[10px] uppercase tracking-[0.2em] premium-text-muted">
-                            {filteredProducts.length} {filteredProducts.length === 1 ? 'Piece' : 'Pieces'}
-                        </span>
-                    </div>
-
-                    {loading ? (
-                        <div className="grid gap-x-8 gap-y-16 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                            {skeletonCards.map((_, index) => (
-                                <div key={index} className="flex flex-col">
-                                    <div className="relative aspect-[3/4] w-full rounded-[10px] skeleton" />
-
-                                    <div className="mt-6 flex flex-col flex-1">
-                                        <div className="flex items-start justify-between gap-4 mb-2">
-                                            <div className="h-4 w-3/4 rounded skeleton" />
-                                            <div className="h-4 w-1/4 rounded skeleton" />
-                                        </div>
-
-                                        <div className="h-4 w-full rounded skeleton mt-2" />
-                                        <div className="h-4 w-5/6 rounded skeleton mt-2" />
-
-                                        <div className="mt-auto flex items-center justify-between border-t border-[var(--border)] pt-4 opacity-0">
-                                            <div className="h-3 w-24 rounded skeleton" />
-                                            <div className="h-3 w-20 rounded skeleton" />
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : filteredProducts.length > 0 ? (
-                        <div className="grid gap-x-8 gap-y-16 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                            {filteredProducts.map((product) => (
-                                <div key={product._id} className="group cursor-pointer flex flex-col" onClick={() => navigate(`/product/${product._id}`)}>
-                                    <div className="relative aspect-[3/4] w-full bg-[var(--bg-secondary)] overflow-hidden mb-6 rounded-[10px]">
-                                        {product.images && product.images.length > 0 ? (
-                                            <img
-                                                src={product.images[0].url}
-                                                alt={product.title}
-                                                className="h-full w-full object-cover transition-transform duration-1000 group-hover:scale-105 opacity-90 group-hover:opacity-100 rounded-[10px]"
-                                            />
-                                        ) : (
-                                            <div className="flex h-full w-full items-center justify-center text-[10px] uppercase tracking-widest premium-text-muted">No Media</div>
-                                        )}
-                                    </div>
-
-                                    <div className="flex flex-col flex-1">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <h3 className="font-playfair text-xl transition-colors group-hover:text-[var(--accent)] line-clamp-1 flex-1 pr-4">{product.title}</h3>
-                                            <span className="text-sm font-light">
-                                                {product.price?.currency === 'INR' ? '₹' : ''}{product.price?.amount?.toLocaleString('en-IN') || '0'}
-                                            </span>
-                                        </div>
-
-                                        <p className="text-xs font-light premium-text-muted line-clamp-2 mb-6">
-                                            {product.description}
-                                        </p>
-
-                                        <div className="mt-auto flex justify-between items-center border-t border-[var(--border)] pt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                                            <span className="text-[9px] uppercase tracking-[0.2em] premium-text-muted">
-                                                {user?.role === 'seller' ? 'Curator View' : 'Client View'}
-                                            </span>
-                                            <button
-                                                className="text-[10px] uppercase tracking-[0.2em] hover:text-[var(--accent)] transition-colors"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleBuyClick(product._id);
-                                                }}
-                                            >
-                                                {user?.role === 'seller' ? 'Modify' : 'View Details'}
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="flex flex-col items-center justify-center py-40 text-center border border-[var(--border)]">
-                            <h2 className="font-playfair text-3xl mb-4">No pieces match your criteria</h2>
-                            <p className="text-sm font-light premium-text-muted mb-10">Refine your search to explore the collection.</p>
-                            <button
-                                className="btn-outline px-10 py-4 text-xs uppercase tracking-[0.2em]"
-                                onClick={() => setSearchQuery('')}
-                            >
-                                Reset Search
+                            <button onClick={handleLogout} className="mt-4 px-4 py-2 text-[10px] uppercase tracking-[0.2em] text-[var(--danger)] text-left transition-colors">
+                                Sign Out
                             </button>
                         </div>
-                    )}
-                </div>
+                    </div>
+                )}
 
-                {!!token && (
-                    <section className="mx-auto max-w-[1600px] px-6 sm:px-12 pb-32">
-                        <div className="flex items-end justify-between mb-12 border-b border-[var(--border)] pb-8">
-                            <div>
-                                <p className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-4">Personal Archive</p>
-                                <h2 className="font-playfair text-4xl">Recently Viewed</h2>
-                            </div>
+                <main>
+                    <section ref={heroSectionRef} className="relative h-screen w-full overflow-hidden bg-black" style={{ perspective: '1000px' }}>
+                        <video
+                            className="absolute inset-0 h-full w-full object-cover"
+                            src={HERO_VIDEO_URL}
+                            autoPlay
+                            muted
+                            loop
+                            playsInline
+                            preload="auto"
+                            aria-hidden="true"
+                            style={{ filter: 'grayscale(1) contrast(1.15) brightness(0.55)' }}
+                        />
+                        <div className="absolute inset-0 bg-[rgba(0,0,0,0.5)]" />
+
+                        <div
+                            ref={heroTextContainerRef}
+                            className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center"
+                            style={{ transformStyle: 'preserve-3d' }}
+                        >
+                            <h1 className="flex flex-col items-center gap-2 leading-none text-white">
+                                <span ref={heroTitleTopRef} className="font-playfair text-[clamp(3.5rem,8vw,7rem)] uppercase tracking-[0.22em] opacity-0">
+                                    THE NEW
+                                </span>
+                                <span ref={heroTitleBottomRef} className="font-playfair text-[clamp(3.5rem,8vw,7rem)] uppercase tracking-[0.22em] opacity-0">
+                                    COLLECTION
+                                </span>
+                            </h1>
+                            <p ref={heroSubtitleRef} className="mt-6 max-w-xl text-sm font-light leading-relaxed text-white/80 opacity-0 sm:text-base">
+                                Slow-motion editorial energy with a refined, cinematic fashion mood.
+                            </p>
+                            <button
+                                ref={heroCtaRef}
+                                onClick={() => goToSection(catalogSectionRef)}
+                                className="mt-10 border border-white px-8 py-3 text-[10px] uppercase tracking-[0.3em] text-white transition-colors duration-300 hover:bg-white hover:text-black opacity-0"
+                            >
+                                Shop Now
+                            </button>
                         </div>
 
-                        {recentlyViewedLoading ? (
-                            <div className="py-20 flex justify-center border border-[var(--border)]">
-                                <div className="w-8 h-8 border border-t-transparent border-[var(--text-primary)] rounded-full animate-spin"></div>
+                        <div className="absolute bottom-0 left-0 z-10 w-full overflow-hidden border-t border-white/10 bg-black/25 py-4 backdrop-blur-sm">
+                            <div ref={marqueeTrackRef} className="flex w-max items-center gap-10 whitespace-nowrap text-[10px] uppercase tracking-[0.35em] text-white/85">
+                                <span>{MARQUEE_TEXT}</span>
+                                <span>{MARQUEE_TEXT}</span>
                             </div>
-                        ) : recentlyViewed?.length > 0 ? (
-                            <div className="flex gap-8 overflow-x-auto pb-8 snap-x">
-                                {recentlyViewed.map((item) => (
-                                    <div
-                                        key={item?._id}
-                                        className="shrink-0 w-72 group cursor-pointer snap-start"
-                                        onClick={() => navigate(`/product/${item?._id}`)}
-                                    >
-                                        <div className="h-[360px] w-full bg-[var(--bg-secondary)] overflow-hidden mb-6 rounded-[10px]">
-                                            {item?.images?.[0]?.url ? (
-                                                <img src={item.images[0].url} alt={item?.title} className="h-full w-full object-cover transition-transform duration-1000 group-hover:scale-105 opacity-90 group-hover:opacity-100 rounded-[10px]" />
+                        </div>
+                    </section>
+
+                    <div className="mx-auto max-w-[1600px] px-6 sm:px-12 py-16">
+                        <div className="border border-[var(--border)]  rounded-[12px] p-8 sm:p-10 mb-16 shadow-lg transition-all duration-500">
+                            <div className="flex flex-col gap-4">
+                                {/* Filter Header */}
+                                <div className="flex items-center justify-between">
+                                    <div>
+
+                                        <h3 className="font-playfair text-lg font-medium">Filter Pieces</h3>
+                                    </div>
+                                    {(minPrice || maxPrice || selectedCategory !== 'All Products') && (
+                                        <button
+                                            onClick={() => {
+                                                setMinPrice('');
+                                                setMaxPrice('');
+                                                setSelectedCategory('All Products');
+                                            }}
+                                            className="text-[9px] uppercase tracking-[0.2em] text-[var(--accent)] hover:text-[var(--text-primary)] transition-colors border border-[var(--accent)] px-3 py-1.5 rounded-[6px] hover:border-[var(--text-primary)]"
+                                        >
+                                            Reset All
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Category Filter */}
+                                <div className="flex flex-col gap-3">
+
+                                    <div className="flex flex-wrap gap-3">
+
+                                    </div>
+                                </div>
+
+                                {/* Price Filter */}
+                                <div className="flex flex-col gap-3">
+                                    <label className="text-[9px] uppercase tracking-[0.2em] premium-text-muted font-medium">Price Range</label>
+                                    <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+                                        <div className="flex-1 flex flex-col gap-2">
+                                            <span className="text-[8px] uppercase tracking-[0.15em] premium-text-muted">From</span>
+                                            <div className="relative">
+                                                <input
+                                                    type="number"
+                                                    value={minPrice}
+                                                    onChange={(e) => setMinPrice(e.target.value)}
+                                                    placeholder="₹0"
+                                                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-[8px] px-4 py-3 text-sm font-light premium-text placeholder-[var(--text-secondary)] transition-all duration-300 focus:outline-none focus:border-[var(--accent)] focus:shadow-md"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="flex-1 flex flex-col gap-2">
+                                            <span className="text-[8px] uppercase tracking-[0.15em] premium-text-muted">To</span>
+                                            <div className="relative">
+                                                <input
+                                                    type="number"
+                                                    value={maxPrice}
+                                                    onChange={(e) => setMaxPrice(e.target.value)}
+                                                    placeholder="₹999999"
+                                                    className="w-full bg-[var(--bg-primary)] border border-[var(--border)] rounded-[8px] px-4 py-3 text-sm font-light premium-text placeholder-[var(--text-secondary)] transition-all duration-300 focus:outline-none focus:border-[var(--accent)] focus:shadow-md"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div ref={catalogSectionRef} className="mx-auto max-w-[1600px] px-6 sm:px-12 py-20">
+                        <div className="flex items-end justify-between mb-16 border-b border-[var(--border)] pb-8">
+                            <div>
+                                <p className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-4">Edition</p>
+                                <h2 className="font-playfair text-4xl">
+                                    {searchQuery ? `Results for "${searchQuery}"` : 'Featured Assortment'}
+                                </h2>
+                            </div>
+                            <span className="text-[10px] uppercase tracking-[0.2em] premium-text-muted">
+                                {filteredProducts.length} {filteredProducts.length === 1 ? 'Piece' : 'Pieces'}
+                            </span>
+                        </div>
+
+                        {loading ? (
+                            <div className="grid gap-x-8 gap-y-16 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                {skeletonCards.map((_, index) => (
+                                    <div key={index} className="flex flex-col">
+                                        <div className="relative aspect-[3/4] w-full rounded-[10px] skeleton" />
+
+                                        <div className="mt-6 flex flex-col flex-1">
+                                            <div className="flex items-start justify-between gap-4 mb-2">
+                                                <div className="h-4 w-3/4 rounded skeleton" />
+                                                <div className="h-4 w-1/4 rounded skeleton" />
+                                            </div>
+
+                                            <div className="h-4 w-full rounded skeleton mt-2" />
+                                            <div className="h-4 w-5/6 rounded skeleton mt-2" />
+
+                                            <div className="mt-auto flex items-center justify-between border-t border-[var(--border)] pt-4 opacity-0">
+                                                <div className="h-3 w-24 rounded skeleton" />
+                                                <div className="h-3 w-20 rounded skeleton" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : filteredProducts.length > 0 ? (
+                            <div ref={productGridRef} className="grid gap-x-8 gap-y-16 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                {filteredProducts.map((product) => (
+                                    <div key={product._id} className="product-card group cursor-pointer flex flex-col" onClick={() => navigate(`/product/${product._id}`), console.log(product)}>
+                                        <div className="relative aspect-[3/4] w-full bg-[var(--bg-secondary)] overflow-hidden mb-6 rounded-[10px]">
+                                            {product.images && product.images.length > 0 ? (
+                                                <img
+                                                    src={product.images[0].url}
+                                                    alt={product.title}
+                                                    className="h-full w-full object-cover transition-transform duration-1000 group-hover:scale-105 opacity-90 group-hover:opacity-100 rounded-[10px]"
+                                                />
                                             ) : (
-                                                <div className="h-full w-full flex items-center justify-center text-[10px] uppercase tracking-widest premium-text-muted">No Media</div>
+                                                <div className="flex h-full w-full items-center justify-center text-[10px] uppercase tracking-widest premium-text-muted">No Media</div>
                                             )}
                                         </div>
-                                        <div>
-                                            <h3 className="font-playfair text-lg group-hover:text-[var(--accent)] transition-colors line-clamp-1">{item?.title}</h3>
-                                            <p className="text-sm font-light mt-2">₹{item?.price?.amount?.toLocaleString('en-IN') || 0}</p>
+
+                                        <div className="flex flex-col flex-1">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <h3 className="font-playfair text-xl transition-colors group-hover:text-[var(--accent)] line-clamp-1 flex-1 pr-4">{product.title}</h3>
+                                                <span className="text-sm font-light">
+                                                    {product.price?.currency === 'INR' ? '₹' : ''}{product.price?.amount?.toLocaleString('en-IN') || '0'}
+                                                </span>
+                                            </div>
+
+                                            <p className="text-xs font-light premium-text-muted line-clamp-2 mb-6">
+                                                {product.description}
+                                            </p>
+
+                                            <div className="mt-auto flex justify-between items-center border-t border-[var(--border)] pt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+
+                                                <button
+                                                    className="text-[10px] uppercase tracking-[0.2em] hover:text-[var(--accent)] transition-colors"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleBuyClick(product._id);
+                                                    }}
+                                                >
+                                                    {user?.role === 'seller' ? 'Modify' : 'View Details'}
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         ) : (
-                            <div className="border border-[var(--border)] py-20 flex justify-center">
-                                <p className="text-[10px] uppercase tracking-[0.2em] premium-text-muted">Your archive is empty.</p>
+                            <div className="flex flex-col items-center justify-center py-40 text-center border border-[var(--border)]">
+                                <h2 className="font-playfair text-3xl mb-4">No pieces match your criteria</h2>
+                                <p className="text-sm font-light premium-text-muted mb-10">Refine your search to explore the collection.</p>
+                                <button
+                                    className="btn-outline px-10 py-4 text-xs uppercase tracking-[0.2em]"
+                                    onClick={() => setSearchQuery('')}
+                                >
+                                    Reset Search
+                                </button>
                             </div>
                         )}
-                    </section>
-                )}
+                    </div>
 
-                <div className="border-t border-[var(--border)] py-24 sm:py-32 text-center">
-                    <h3 className="font-playfair text-4xl sm:text-5xl mb-6">Join The Obsidian Gallery</h3>
-                    <p className="text-sm font-light premium-text-muted mb-12 max-w-lg mx-auto">
-                        Unlock an elevated experience. Gain early access to the newest curations and exclusive pieces.
-                    </p>
-                    <button
-                        onClick={() => navigate('/register')}
-                        className="btn-accent px-12 py-5 text-xs uppercase tracking-[0.2em]"
-                    >
-                        Register
-                    </button>
-                </div>
-            </main>
+                    {!!token && (
+                        <section className="mx-auto max-w-[1600px] px-6 sm:px-12 pb-32">
+                            <div className="flex items-end justify-between mb-12 border-b border-[var(--border)] pb-8">
+                                <div>
+                                    <p className="text-[10px] uppercase tracking-[0.2em] premium-text-muted mb-4">Personal Archive</p>
+                                    <h2 className="font-playfair text-4xl">Recently Viewed</h2>
+                                </div>
+                            </div>
+
+                            {recentlyViewedLoading ? (
+                                <div className="py-20 flex justify-center border border-[var(--border)]">
+                                    <div className="w-8 h-8 border border-t-transparent border-[var(--text-primary)] rounded-full animate-spin"></div>
+                                </div>
+                            ) : recentlyViewed?.length > 0 ? (
+                                <div className="flex gap-8 overflow-x-auto pb-8 snap-x">
+                                    {recentlyViewed.map((item) => (
+                                        <div
+                                            key={item?._id}
+                                            className="shrink-0 w-72 group cursor-pointer snap-start"
+                                            onClick={() => navigate(`/product/${item?._id}`)}
+                                        >
+                                            <div className="h-[360px] w-full bg-[var(--bg-secondary)] overflow-hidden mb-6 rounded-[10px]">
+                                                {item?.images?.[0]?.url ? (
+                                                    <img src={item.images[0].url} alt={item?.title} className="h-full w-full object-cover transition-transform duration-1000 group-hover:scale-105 opacity-90 group-hover:opacity-100 rounded-[10px]" />
+                                                ) : (
+                                                    <div className="h-full w-full flex items-center justify-center text-[10px] uppercase tracking-widest premium-text-muted">No Media</div>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <h3 className="font-playfair text-lg group-hover:text-[var(--accent)] transition-colors line-clamp-1">{item?.title}</h3>
+                                                <p className="text-sm font-light mt-2">₹{item?.price?.amount?.toLocaleString('en-IN') || 0}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="border border-[var(--border)] py-20 flex justify-center">
+                                    <p className="text-[10px] uppercase tracking-[0.2em] premium-text-muted">Your archive is empty.</p>
+                                </div>
+                            )}
+                        </section>
+                    )}
+
+                    <div className="border-t border-[var(--border)] py-24 sm:py-32 text-center">
+                        <h3 className="font-playfair text-4xl sm:text-5xl mb-6">Join The Obsidian Gallery</h3>
+                        <p className="text-sm font-light premium-text-muted mb-12 max-w-lg mx-auto">
+                            Unlock an elevated experience. Gain early access to the newest curations and exclusive pieces.
+                        </p>
+                        <button
+                            onClick={() => navigate('/register')}
+                            className="btn-accent px-12 py-5 text-xs uppercase tracking-[0.2em]"
+                        >
+                            Register
+                        </button>
+                    </div>
+                </main>
+            </div>
         </div>
     )
 }
