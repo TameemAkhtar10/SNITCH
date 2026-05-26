@@ -1,8 +1,8 @@
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import React, { useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
-import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import UseProduct from '../Hooks/UseProduct'
 import UseWishlist from '../../Wishlist/Hooks/UseWishlist.js'
 import { getRecentlyViewed } from '../services/recentlyViewed.service.js'
@@ -207,6 +207,8 @@ const Home = () => {
         return () => {
             heroSectionElement.removeEventListener('mousemove', handleMouseMove)
             heroSectionElement.removeEventListener('mouseleave', handleMouseLeave)
+            gsap.killTweensOf('*')
+            ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
         }
     }, [])
 
@@ -223,6 +225,8 @@ const Home = () => {
 
         return () => {
             heroTimeline.kill()
+            gsap.killTweensOf('*')
+            ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
         }
     }, [introLoaderVisible])
 
@@ -251,6 +255,8 @@ const Home = () => {
 
         return () => {
             ctx.revert()
+            gsap.killTweensOf('*')
+            ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
         }
     }, [introLoaderVisible, loading, filteredProducts.length])
 
@@ -268,6 +274,8 @@ const Home = () => {
 
         return () => {
             tween.kill()
+            gsap.killTweensOf('*')
+            ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
         }
     }, [])
 
@@ -334,6 +342,8 @@ const Home = () => {
             }
 
             isAnimatingRef.current = false
+            gsap.killTweensOf('*')
+            ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
         }
     }, [])
 
