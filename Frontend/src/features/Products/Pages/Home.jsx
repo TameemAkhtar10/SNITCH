@@ -172,19 +172,22 @@ const Home = () => {
         if (!heroSectionElement || !heroTextContainerElement) return
 
         let isActive = true
-        let gsapModule = null
-        let scrollTriggerModule = null
+
+        const gsap = window.gsap
+        const ScrollTrigger = window.ScrollTrigger
+
+        if (!gsap || !ScrollTrigger) return
+
+        gsap.registerPlugin(ScrollTrigger)
 
         const handleMouseMove = (event) => {
-            if (!gsapModule) return
-
             const bounds = heroSectionElement.getBoundingClientRect()
             const deltaX = event.clientX - (bounds.left + bounds.width / 2)
             const deltaY = event.clientY - (bounds.top + bounds.height / 2)
             const rotateY = Math.max(-8, Math.min(8, (deltaX / bounds.width) * 16))
             const rotateX = Math.max(-8, Math.min(8, -(deltaY / bounds.height) * 16))
 
-            gsapModule.to(heroTextContainerElement, {
+            gsap.to(heroTextContainerElement, {
                 rotateX,
                 rotateY,
                 duration: 0.45,
@@ -194,9 +197,7 @@ const Home = () => {
         }
 
         const handleMouseLeave = () => {
-            if (!gsapModule) return
-
-            gsapModule.to(heroTextContainerElement, {
+            gsap.to(heroTextContainerElement, {
                 rotateX: 0,
                 rotateY: 0,
                 duration: 0.6,
@@ -208,21 +209,12 @@ const Home = () => {
         heroSectionElement.addEventListener('mousemove', handleMouseMove)
         heroSectionElement.addEventListener('mouseleave', handleMouseLeave)
 
-        import('gsap').then(({ gsap }) => {
-            if (!isActive) return
-            gsapModule = gsap
-        })
-
         return () => {
             isActive = false
             heroSectionElement.removeEventListener('mousemove', handleMouseMove)
             heroSectionElement.removeEventListener('mouseleave', handleMouseLeave)
-            if (gsapModule) {
-                gsapModule.killTweensOf('*')
-            }
-            if (scrollTriggerModule) {
-                scrollTriggerModule.getAll().forEach((trigger) => trigger.kill())
-            }
+            gsap.killTweensOf('*')
+            ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
         }
     }, [])
 
@@ -230,36 +222,28 @@ const Home = () => {
         if (introLoaderVisible) return
 
         let isActive = true
-        let gsapModule = null
-        let scrollTriggerModule = null
         let heroTimeline = null
 
-        import('gsap').then(({ gsap }) => {
-            if (!isActive) return
-            gsapModule = gsap
-            return import('gsap/ScrollTrigger').then(({ ScrollTrigger }) => {
-                if (!isActive) return
-                scrollTriggerModule = ScrollTrigger
-                gsapModule.registerPlugin(scrollTriggerModule)
-                heroTimeline = gsapModule.timeline()
+        const gsap = window.gsap
+        const ScrollTrigger = window.ScrollTrigger
 
-                heroTimeline
-                    .fromTo(heroTitleTopRef.current, { x: -100, opacity: 0 }, { x: 0, opacity: 1, duration: 0.9, ease: 'power3.out' })
-                    .fromTo(heroTitleBottomRef.current, { x: 100, opacity: 0 }, { x: 0, opacity: 1, duration: 0.9, ease: 'power3.out' }, '-=0.5')
-                    .fromTo(heroSubtitleRef.current, { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.65, ease: 'power2.out' }, '-=0.25')
-                    .fromTo(heroCtaRef.current, { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: 'power2.out' }, '-=0.2')
-            })
-        })
+        if (!gsap || !ScrollTrigger) return
+
+        gsap.registerPlugin(ScrollTrigger)
+
+        heroTimeline = gsap.timeline()
+
+        heroTimeline
+            .fromTo(heroTitleTopRef.current, { x: -100, opacity: 0 }, { x: 0, opacity: 1, duration: 0.9, ease: 'power3.out' })
+            .fromTo(heroTitleBottomRef.current, { x: 100, opacity: 0 }, { x: 0, opacity: 1, duration: 0.9, ease: 'power3.out' }, '-=0.5')
+            .fromTo(heroSubtitleRef.current, { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.65, ease: 'power2.out' }, '-=0.25')
+            .fromTo(heroCtaRef.current, { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: 'power2.out' }, '-=0.2')
 
         return () => {
             isActive = false
             heroTimeline?.kill()
-            if (gsapModule) {
-                gsapModule.killTweensOf('*')
-            }
-            if (scrollTriggerModule) {
-                scrollTriggerModule.getAll().forEach((trigger) => trigger.kill())
-            }
+            gsap.killTweensOf('*')
+            ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
         }
     }, [introLoaderVisible])
 
@@ -272,43 +256,34 @@ const Home = () => {
 
         const scopeElement = productGridRef.current
         let isActive = true
-        let gsapModule = null
-        let scrollTriggerModule = null
         let ctx = null
 
-        import('gsap').then(({ gsap }) => {
-            if (!isActive) return
-            gsapModule = gsap
-            return import('gsap/ScrollTrigger').then(({ ScrollTrigger }) => {
-                if (!isActive) return
-                scrollTriggerModule = ScrollTrigger
-                gsapModule.registerPlugin(scrollTriggerModule)
+        const gsap = window.gsap
+        const ScrollTrigger = window.ScrollTrigger
 
-                ctx = gsapModule.context(() => {
-                    gsapModule.from(productCards, {
-                        scrollTrigger: {
-                            trigger: scopeElement,
-                            start: 'top 80%',
-                        },
-                        y: 60,
-                        opacity: 0,
-                        stagger: 0.1,
-                        duration: 0.6,
-                        ease: 'power2.out',
-                    })
-                }, scopeElement)
+        if (!gsap || !ScrollTrigger) return
+
+        gsap.registerPlugin(ScrollTrigger)
+
+        ctx = gsap.context(() => {
+            gsap.from(productCards, {
+                scrollTrigger: {
+                    trigger: scopeElement,
+                    start: 'top 80%',
+                },
+                y: 60,
+                opacity: 0,
+                stagger: 0.1,
+                duration: 0.6,
+                ease: 'power2.out',
             })
-        })
+        }, scopeElement)
 
         return () => {
             isActive = false
             ctx?.revert()
-            if (gsapModule) {
-                gsapModule.killTweensOf('*')
-            }
-            if (scrollTriggerModule) {
-                scrollTriggerModule.getAll().forEach((trigger) => trigger.kill())
-            }
+            gsap.killTweensOf('*')
+            ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
         }
     }, [introLoaderVisible, loading, filteredProducts.length])
 
@@ -318,35 +293,27 @@ const Home = () => {
         if (!marqueeElement) return
 
         let isActive = true
-        let gsapModule = null
-        let scrollTriggerModule = null
         let tween = null
 
-        import('gsap').then(({ gsap }) => {
-            if (!isActive) return
-            gsapModule = gsap
-            return import('gsap/ScrollTrigger').then(({ ScrollTrigger }) => {
-                if (!isActive) return
-                scrollTriggerModule = ScrollTrigger
-                gsapModule.registerPlugin(scrollTriggerModule)
-                tween = gsapModule.to(marqueeElement, {
-                    x: '-50%',
-                    duration: 15,
-                    repeat: -1,
-                    ease: 'none',
-                })
-            })
+        const gsap = window.gsap
+        const ScrollTrigger = window.ScrollTrigger
+
+        if (!gsap || !ScrollTrigger) return
+
+        gsap.registerPlugin(ScrollTrigger)
+
+        tween = gsap.to(marqueeElement, {
+            x: '-50%',
+            duration: 15,
+            repeat: -1,
+            ease: 'none',
         })
 
         return () => {
             isActive = false
             tween?.kill()
-            if (gsapModule) {
-                gsapModule.killTweensOf('*')
-            }
-            if (scrollTriggerModule) {
-                scrollTriggerModule.getAll().forEach((trigger) => trigger.kill())
-            }
+            gsap.killTweensOf('*')
+            ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
         }
     }, [])
 
@@ -361,19 +328,15 @@ const Home = () => {
         setLoaderText(Array.from({ length: LOADER_TEXT.length }, () => getRandomLoaderChar()).join(''))
 
         let isActive = true
-        let gsapModule = null
-        let scrollTriggerModule = null
 
-        import('gsap').then(({ gsap }) => {
-            if (!isActive) return
-            gsapModule = gsap
-            return import('gsap/ScrollTrigger').then(({ ScrollTrigger }) => {
-                if (!isActive) return
-                scrollTriggerModule = ScrollTrigger
-                gsapModule.registerPlugin(scrollTriggerModule)
-                gsapModule.set(mainContentElement, { opacity: 0 })
-            })
-        })
+        const gsap = window.gsap
+        const ScrollTrigger = window.ScrollTrigger
+
+        if (!gsap || !ScrollTrigger) return
+
+        gsap.registerPlugin(ScrollTrigger)
+
+        gsap.set(mainContentElement, { opacity: 0 })
 
         let resolvedCount = 0
 
@@ -395,21 +358,19 @@ const Home = () => {
                 scrambleIntervalRef.current = null
 
                 exitTimeoutRef.current = window.setTimeout(() => {
-                    if (!gsapModule) return
-
-                    gsapModule.to(mainContentElement, {
+                    gsap.to(mainContentElement, {
                         opacity: 1,
                         duration: 0.8,
                         ease: 'power2.out',
                     })
 
-                    gsapModule.to(loaderElement, {
+                    gsap.to(loaderElement, {
                         y: '-100%',
                         duration: 0.8,
                         ease: 'power4.inOut',
                         onComplete: () => {
                             setIntroLoaderVisible(false)
-                            gsapModule.set(loaderElement, { display: 'none' })
+                            gsap.set(loaderElement, { display: 'none' })
                         },
                     })
                 }, 800)
@@ -429,12 +390,8 @@ const Home = () => {
             }
 
             isAnimatingRef.current = false
-            if (gsapModule) {
-                gsapModule.killTweensOf('*')
-            }
-            if (scrollTriggerModule) {
-                scrollTriggerModule.getAll().forEach((trigger) => trigger.kill())
-            }
+            gsap.killTweensOf('*')
+            ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
         }
     }, [])
 
