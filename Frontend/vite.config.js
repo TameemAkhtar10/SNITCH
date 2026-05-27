@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {
     outDir: 'dist',
-    sourcemap: false,
+    sourcemap: true,
     minify: 'esbuild',
     target: 'es2015',
   },
