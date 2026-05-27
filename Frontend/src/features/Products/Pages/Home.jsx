@@ -51,17 +51,12 @@ const Home = () => {
     const catalogSectionRef = useRef(null)
     const heroSectionRef = useRef(null)
     const heroTextContainerRef = useRef(null)
-    const heroTitleTopRef = useRef(null)
-    const heroTitleBottomRef = useRef(null)
-    const heroSubtitleRef = useRef(null)
-    const heroCtaRef = useRef(null)
-    const marqueeTrackRef = useRef(null)
     const productGridRef = useRef(null)
     const loaderRef = useRef(null)
-    const loaderTextRef = useRef(null)
     const mainContentRef = useRef(null)
     const scrambleIntervalRef = useRef(null)
     const exitTimeoutRef = useRef(null)
+    const loaderHideTimeoutRef = useRef(null)
     const isAnimatingRef = useRef(false)
     const [loading, setLoading] = useState(true)
     const [introLoaderVisible, setIntroLoaderVisible] = useState(true)
@@ -171,15 +166,6 @@ const Home = () => {
 
         if (!heroSectionElement || !heroTextContainerElement) return
 
-        let isActive = true
-
-        const gsap = window.gsap
-        const ScrollTrigger = window.ScrollTrigger
-
-        if (!gsap || !ScrollTrigger) return
-
-        gsap.registerPlugin(ScrollTrigger)
-
         const handleMouseMove = (event) => {
             const bounds = heroSectionElement.getBoundingClientRect()
             const deltaX = event.clientX - (bounds.left + bounds.width / 2)
@@ -187,65 +173,22 @@ const Home = () => {
             const rotateY = Math.max(-8, Math.min(8, (deltaX / bounds.width) * 16))
             const rotateX = Math.max(-8, Math.min(8, -(deltaY / bounds.height) * 16))
 
-            gsap.to(heroTextContainerElement, {
-                rotateX,
-                rotateY,
-                duration: 0.45,
-                ease: 'power3.out',
-                overwrite: true,
-            })
+            heroTextContainerElement.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`
         }
 
         const handleMouseLeave = () => {
-            gsap.to(heroTextContainerElement, {
-                rotateX: 0,
-                rotateY: 0,
-                duration: 0.6,
-                ease: 'power3.out',
-                overwrite: true,
-            })
+            heroTextContainerElement.style.transform = 'rotateX(0deg) rotateY(0deg)'
         }
 
         heroSectionElement.addEventListener('mousemove', handleMouseMove)
         heroSectionElement.addEventListener('mouseleave', handleMouseLeave)
 
         return () => {
-            isActive = false
             heroSectionElement.removeEventListener('mousemove', handleMouseMove)
             heroSectionElement.removeEventListener('mouseleave', handleMouseLeave)
-            gsap.killTweensOf('*')
-            ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
+            heroTextContainerElement.style.transform = 'rotateX(0deg) rotateY(0deg)'
         }
     }, [])
-
-    useEffect(() => {
-        if (introLoaderVisible) return
-
-        let isActive = true
-        let heroTimeline = null
-
-        const gsap = window.gsap
-        const ScrollTrigger = window.ScrollTrigger
-
-        if (!gsap || !ScrollTrigger) return
-
-        gsap.registerPlugin(ScrollTrigger)
-
-        heroTimeline = gsap.timeline()
-
-        heroTimeline
-            .fromTo(heroTitleTopRef.current, { x: -100, opacity: 0 }, { x: 0, opacity: 1, duration: 0.9, ease: 'power3.out' })
-            .fromTo(heroTitleBottomRef.current, { x: 100, opacity: 0 }, { x: 0, opacity: 1, duration: 0.9, ease: 'power3.out' }, '-=0.5')
-            .fromTo(heroSubtitleRef.current, { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.65, ease: 'power2.out' }, '-=0.25')
-            .fromTo(heroCtaRef.current, { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: 'power2.out' }, '-=0.2')
-
-        return () => {
-            isActive = false
-            heroTimeline?.kill()
-            gsap.killTweensOf('*')
-            ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
-        }
-    }, [introLoaderVisible])
 
     useEffect(() => {
         if (introLoaderVisible || loading || !filteredProducts.length || !productGridRef.current) return
@@ -254,89 +197,46 @@ const Home = () => {
 
         if (!productCards.length) return
 
-        const scopeElement = productGridRef.current
-        let isActive = true
-        let ctx = null
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('product-card-visible')
+                        observer.unobserve(entry.target)
+                    }
+                })
+            },
+            {
+                threshold: 0.2,
+                rootMargin: '0px 0px -8% 0px',
+            }
+        )
 
-        const gsap = window.gsap
-        const ScrollTrigger = window.ScrollTrigger
-
-        if (!gsap || !ScrollTrigger) return
-
-        gsap.registerPlugin(ScrollTrigger)
-
-        ctx = gsap.context(() => {
-            gsap.from(productCards, {
-                scrollTrigger: {
-                    trigger: scopeElement,
-                    start: 'top 80%',
-                },
-                y: 60,
-                opacity: 0,
-                stagger: 0.1,
-                duration: 0.6,
-                ease: 'power2.out',
-            })
-        }, scopeElement)
+        productCards.forEach((card, index) => {
+            card.style.transitionDelay = `${index * 0.1}s`
+            observer.observe(card)
+        })
 
         return () => {
-            isActive = false
-            ctx?.revert()
-            gsap.killTweensOf('*')
-            ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
+            observer.disconnect()
+            productCards.forEach((card) => {
+                card.style.transitionDelay = '0s'
+            })
         }
     }, [introLoaderVisible, loading, filteredProducts.length])
 
     useEffect(() => {
-        const marqueeElement = marqueeTrackRef.current
-
-        if (!marqueeElement) return
-
-        let isActive = true
-        let tween = null
-
-        const gsap = window.gsap
-        const ScrollTrigger = window.ScrollTrigger
-
-        if (!gsap || !ScrollTrigger) return
-
-        gsap.registerPlugin(ScrollTrigger)
-
-        tween = gsap.to(marqueeElement, {
-            x: '-50%',
-            duration: 15,
-            repeat: -1,
-            ease: 'none',
-        })
-
-        return () => {
-            isActive = false
-            tween?.kill()
-            gsap.killTweensOf('*')
-            ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
-        }
-    }, [])
-
-    useEffect(() => {
         const loaderElement = loaderRef.current
-        const loaderTextElement = loaderTextRef.current
         const mainContentElement = mainContentRef.current
 
-        if (!loaderElement || !loaderTextElement || !mainContentElement || isAnimatingRef.current) return
+        if (!loaderElement || !mainContentElement || isAnimatingRef.current) return
 
         isAnimatingRef.current = true
         setLoaderText(Array.from({ length: LOADER_TEXT.length }, () => getRandomLoaderChar()).join(''))
 
-        let isActive = true
-
-        const gsap = window.gsap
-        const ScrollTrigger = window.ScrollTrigger
-
-        if (!gsap || !ScrollTrigger) return
-
-        gsap.registerPlugin(ScrollTrigger)
-
-        gsap.set(mainContentElement, { opacity: 0 })
+        mainContentElement.style.opacity = '0'
+        mainContentElement.style.transition = 'opacity 0.8s ease'
+        loaderElement.style.transition = 'transform 0.8s cubic-bezier(0.77, 0, 0.175, 1)'
 
         let resolvedCount = 0
 
@@ -358,27 +258,18 @@ const Home = () => {
                 scrambleIntervalRef.current = null
 
                 exitTimeoutRef.current = window.setTimeout(() => {
-                    gsap.to(mainContentElement, {
-                        opacity: 1,
-                        duration: 0.8,
-                        ease: 'power2.out',
-                    })
+                    mainContentElement.style.opacity = '1'
+                    loaderElement.style.transform = 'translateY(-100%)'
 
-                    gsap.to(loaderElement, {
-                        y: '-100%',
-                        duration: 0.8,
-                        ease: 'power4.inOut',
-                        onComplete: () => {
-                            setIntroLoaderVisible(false)
-                            gsap.set(loaderElement, { display: 'none' })
-                        },
-                    })
+                    loaderHideTimeoutRef.current = window.setTimeout(() => {
+                        setIntroLoaderVisible(false)
+                        loaderElement.style.display = 'none'
+                    }, 820)
                 }, 800)
             }
         }, 80)
 
         return () => {
-            isActive = false
             if (scrambleIntervalRef.current) {
                 window.clearInterval(scrambleIntervalRef.current)
                 scrambleIntervalRef.current = null
@@ -389,9 +280,12 @@ const Home = () => {
                 exitTimeoutRef.current = null
             }
 
+            if (loaderHideTimeoutRef.current) {
+                window.clearTimeout(loaderHideTimeoutRef.current)
+                loaderHideTimeoutRef.current = null
+            }
+
             isAnimatingRef.current = false
-            gsap.killTweensOf('*')
-            ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
         }
     }, [])
 
@@ -609,6 +503,62 @@ const Home = () => {
     background-size: 200% 100%;
     animation: shimmer 1.8s ease-in-out infinite;
 }
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(32px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes marqueeScroll {
+    from {
+        transform: translateX(0%);
+    }
+    to {
+        transform: translateX(-50%);
+    }
+}
+
+.hero-tilt {
+    transition: transform 0.35s ease;
+}
+
+.hero-line,
+.hero-subtitle,
+.hero-cta {
+    opacity: 0;
+}
+
+.hero-line-visible,
+.hero-subtitle-visible,
+.hero-cta-visible {
+    animation: slideUp 0.8s ease forwards;
+}
+
+.hero-delay-1 { animation-delay: 0.05s; }
+.hero-delay-2 { animation-delay: 0.18s; }
+.hero-delay-3 { animation-delay: 0.34s; }
+.hero-delay-4 { animation-delay: 0.48s; }
+
+.marquee-track {
+    animation: marqueeScroll 15s linear infinite;
+}
+
+.product-card {
+    opacity: 0;
+    transform: translateY(60px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.product-card-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
             `}</style>
 
             <div ref={mainContentRef} style={{ opacity: 0 }}>
@@ -651,7 +601,6 @@ const Home = () => {
                                         Dashboard
                                     </button>
                                     <button onClick={() => { setProfileMenuOpen(false); navigate('/seller/create-product'); }} className="px-4 py-2 text-xs uppercase tracking-widest premium-text-muted hover:text-[var(--text-primary)] text-left transition-colors">
-                                        Add Piece
                                     </button>
                                 </>
                             ) : (
@@ -696,31 +645,30 @@ const Home = () => {
 
                         <div
                             ref={heroTextContainerRef}
-                            className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center"
+                            className="hero-tilt relative z-10 flex h-full flex-col items-center justify-center px-6 text-center"
                             style={{ transformStyle: 'preserve-3d' }}
                         >
                             <h1 className="flex flex-col items-center gap-2 leading-none text-white">
-                                <span ref={heroTitleTopRef} className="font-playfair text-[clamp(3.5rem,8vw,7rem)] uppercase tracking-[0.22em] opacity-0">
+                                <span className={`hero-line hero-delay-1 font-playfair text-[clamp(3.5rem,8vw,7rem)] uppercase tracking-[0.22em] ${!introLoaderVisible ? 'hero-line-visible' : ''}`}>
                                     THE NEW
                                 </span>
-                                <span ref={heroTitleBottomRef} className="font-playfair text-[clamp(3.5rem,8vw,7rem)] uppercase tracking-[0.22em] opacity-0">
+                                <span className={`hero-line hero-delay-2 font-playfair text-[clamp(3.5rem,8vw,7rem)] uppercase tracking-[0.22em] ${!introLoaderVisible ? 'hero-line-visible' : ''}`}>
                                     COLLECTION
                                 </span>
                             </h1>
-                            <p ref={heroSubtitleRef} className="mt-6 max-w-xl text-sm font-light leading-relaxed text-white/80 opacity-0 sm:text-base">
+                            <p className={`hero-subtitle hero-delay-3 mt-6 max-w-xl text-sm font-light leading-relaxed text-white/80 sm:text-base ${!introLoaderVisible ? 'hero-subtitle-visible' : ''}`}>
                                 Slow-motion editorial energy with a refined, cinematic fashion mood.
                             </p>
                             <button
-                                ref={heroCtaRef}
                                 onClick={() => goToSection(catalogSectionRef)}
-                                className="mt-10 border border-white px-8 py-3 text-[10px] uppercase tracking-[0.3em] text-white transition-colors duration-300 hover:bg-white hover:text-black opacity-0"
+                                className={`hero-cta hero-delay-4 mt-10 border border-white px-8 py-3 text-[10px] uppercase tracking-[0.3em] text-white transition-colors duration-300 hover:bg-white hover:text-black ${!introLoaderVisible ? 'hero-cta-visible' : ''}`}
                             >
                                 Shop Now
                             </button>
                         </div>
 
                         <div className="absolute bottom-0 left-0 z-10 w-full overflow-hidden border-t border-white/10 bg-black/25 py-4 backdrop-blur-sm">
-                            <div ref={marqueeTrackRef} className="flex w-max items-center gap-10 whitespace-nowrap text-[10px] uppercase tracking-[0.35em] text-white/85">
+                            <div className="marquee-track flex w-max items-center gap-10 whitespace-nowrap text-[10px] uppercase tracking-[0.35em] text-white/85">
                                 <span>{MARQUEE_TEXT}</span>
                                 <span>{MARQUEE_TEXT}</span>
                             </div>
@@ -833,7 +781,7 @@ const Home = () => {
                                 {filteredProducts.map((product) => (
                                     <div key={product._id} className="product-card group cursor-pointer flex flex-col" onClick={() => { navigate(`/product/${product._id}`); console.log(product); }}>
 
-                                        <div className="relative aspec  t-[3/4] w-full bg-[var(--bg-secondary)] overflow-hidden mb-6 rounded-[10px]">
+                                        <div className="relative aspect-[3/4] w-full bg-[var(--bg-secondary)] overflow-hidden mb-6 rounded-[10px]">
                                             {product.images && product.images.length > 0 ? (
                                                 <img
                                                     src={product.images[0].url}
