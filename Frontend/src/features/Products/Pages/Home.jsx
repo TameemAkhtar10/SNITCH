@@ -831,8 +831,9 @@ const Home = () => {
                         ) : filteredProducts.length > 0 ? (
                             <div ref={productGridRef} className="grid gap-x-8 gap-y-16 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                                 {filteredProducts.map((product) => (
-                                    <div key={product._id} className="product-card group cursor-pointer flex flex-col" onClick={() => navigate(`/product/${product._id}`), console.log(product)}>
-                                        <div className="relative aspect-[3/4] w-full bg-[var(--bg-secondary)] overflow-hidden mb-6 rounded-[10px]">
+                                    <div key={product._id} className="product-card group cursor-pointer flex flex-col" onClick={() => { navigate(`/product/${product._id}`); console.log(product); }}>
+
+                                        <div className="relative aspec  t-[3/4] w-full bg-[var(--bg-secondary)] overflow-hidden mb-6 rounded-[10px]">
                                             {product.images && product.images.length > 0 ? (
                                                 <img
                                                     src={product.images[0].url}
