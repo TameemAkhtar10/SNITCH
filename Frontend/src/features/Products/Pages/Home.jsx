@@ -53,6 +53,7 @@ const Home = () => {
     const heroTextContainerRef = useRef(null)
     const productGridRef = useRef(null)
     const loaderRef = useRef(null)
+    const loaderTextRef = useRef(null)
     const mainContentRef = useRef(null)
     const scrambleIntervalRef = useRef(null)
     const exitTimeoutRef = useRef(null)
@@ -74,14 +75,14 @@ const Home = () => {
     const cartItems = useSelector((state) => state.cart?.items || [])
     const cartItemCount = cartItems.length
     const wishlistItemCount = wishlistItems.length
+    const filteredProducts = products || []
 
     useEffect(() => {
         const fetchProducts = async () => {
             try {
                 setLoading(true)
                 await handleGetAllProducts()
-                console.log(user);
-
+                console.log('Products fetched successfully', products)
             } catch (error) {
                 console.log(error)
             } finally {
@@ -267,7 +268,7 @@ const Home = () => {
                     }, 820)
                 }, 800)
             }
-        }, 80)
+        }, 150)
 
         return () => {
             if (scrambleIntervalRef.current) {
@@ -348,10 +349,6 @@ const Home = () => {
             console.log(error)
         }
     }
-
-    const filteredProducts = products || []
-
-    const categories = ['All Products', 'Men', 'Women', 'Kids', 'Accessories', 'Seasonal']
 
     const { isDark, toggleDark } = useDarkMode()
     const skeletonCards = Array.from({ length: 7 })
@@ -667,7 +664,7 @@ const Home = () => {
                             </button>
                         </div>
 
-                        <div className="absolute bottom-0 left-0 z-10 w-full overflow-hidden border-t border-white/10 bg-black/25 py-4 backdrop-blur-sm">
+                        <div className="absolute bottom-0 left-0 z-10 w-full overflow-hidden   bg-black/25 py-4 backdrop-blur-sm">
                             <div className="marquee-track flex w-max items-center gap-10 whitespace-nowrap text-[10px] uppercase tracking-[0.35em] text-white/85">
                                 <span>{MARQUEE_TEXT}</span>
                                 <span>{MARQUEE_TEXT}</span>

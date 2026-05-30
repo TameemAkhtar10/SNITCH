@@ -11,7 +11,5 @@ export default defineConfig({
     minify: 'esbuild',
     target: 'es2015',
   },
-  optimizeDeps: {
-    include: ['gsap'],
-  },
+ 
 })
