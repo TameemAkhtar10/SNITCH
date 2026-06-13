@@ -232,6 +232,15 @@ const Home = () => {
 
         if (!loaderElement || !mainContentElement || isAnimatingRef.current) return
 
+        const hasLoaderShown = sessionStorage.getItem('loaderShown')
+        if (hasLoaderShown) {
+            setIntroLoaderVisible(false)
+            mainContentElement.style.opacity = '1'
+            return
+        }
+
+        sessionStorage.setItem('loaderShown', 'true')
+
         isAnimatingRef.current = true
         setLoaderText(Array.from({ length: LOADER_TEXT.length }, () => getRandomLoaderChar()).join(''))
 
