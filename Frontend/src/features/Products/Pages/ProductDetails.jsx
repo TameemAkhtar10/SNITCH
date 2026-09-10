@@ -164,7 +164,7 @@ const ProductDetails = () => {
         new Set(variants.flatMap((v) => getVariantSizes(v)).filter(Boolean))
     )
 
-    const selectedColor = selectedColorOption || (selectedVariant ? getVariantAttr(selectedVariant, 'color') : null)
+    const selectedColor = selectedColorOption
     const selectedSize = selectedSizeOption
 
     const chooseVariantIndex = ({ color, size }) => {
@@ -202,10 +202,38 @@ const ProductDetails = () => {
     const handleSelectSize = (size) => {
         setSelectedSizeOption(size)
 
-        const nextIndex = chooseVariantIndex({ color: selectedColor, size })
+        const nextIndex = chooseVariantIndex({ color: selectedColorOption, size })
         if (nextIndex === null) return
         setSelectedVariantIndex(nextIndex)
         setVariantImageIndex(prev => ({ ...prev, [nextIndex]: 0 }))
+    }
+
+    const handleClearColor = () => {
+        setSelectedColorOption(null)
+        if (selectedSizeOption) {
+            const nextIndex = chooseVariantIndex({ color: null, size: selectedSizeOption })
+            setSelectedVariantIndex(nextIndex)
+            if (nextIndex !== null) {
+                setVariantImageIndex(prev => ({ ...prev, [nextIndex]: 0 }))
+            }
+        } else {
+            setSelectedVariantIndex(null)
+            setCurrentImageIndex(0)
+        }
+    }
+
+    const handleClearSize = () => {
+        setSelectedSizeOption(null)
+        if (selectedColorOption) {
+            const nextIndex = chooseVariantIndex({ color: selectedColorOption, size: null })
+            setSelectedVariantIndex(nextIndex)
+            if (nextIndex !== null) {
+                setVariantImageIndex(prev => ({ ...prev, [nextIndex]: 0 }))
+            }
+        } else {
+            setSelectedVariantIndex(null)
+            setCurrentImageIndex(0)
+        }
     }
 
     const handleClearSelection = () => {
@@ -681,10 +709,10 @@ const ProductDetails = () => {
                                         <div className="flex items-center justify-between gap-3 mb-4">
                                             <div className="flex items-center gap-3">
                                                 <p className="text-[10px] uppercase tracking-[0.15em] premium-text-muted">Color</p>
-                                                {selectedVariantIndex !== null && (
+                                                {selectedColorOption !== null && (
                                                     <button
                                                         type="button"
-                                                        onClick={handleClearSelection}
+                                                        onClick={handleClearColor}
                                                         className="text-[9px] uppercase tracking-[0.18em] premium-text-muted hover:text-[var(--text-primary)] transition-colors"
                                                     >
                                                         × Clear
@@ -712,10 +740,10 @@ const ProductDetails = () => {
                                         <div className="flex items-center justify-between gap-3 mb-4">
                                             <div className="flex items-center gap-3">
                                                 <p className="text-[10px] uppercase tracking-[0.15em] premium-text-muted">Size</p>
-                                                {selectedVariantIndex !== null && (
+                                                {selectedSizeOption !== null && (
                                                     <button
                                                         type="button"
-                                                        onClick={handleClearSelection}
+                                                        onClick={handleClearSize}
                                                         className="text-[9px] uppercase tracking-[0.18em] premium-text-muted hover:text-[var(--text-primary)] transition-colors"
                                                     >
                                                         × Clear
