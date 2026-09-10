@@ -165,7 +165,7 @@ const ProductDetails = () => {
     )
 
     const selectedColor = selectedColorOption || (selectedVariant ? getVariantAttr(selectedVariant, 'color') : null)
-    const selectedSize = selectedSizeOption || (selectedVariant ? getVariantSizes(selectedVariant)[0] : null)
+    const selectedSize = selectedSizeOption
 
     const chooseVariantIndex = ({ color, size }) => {
         if (!variants.length) return null
@@ -226,8 +226,8 @@ const ProductDetails = () => {
             return
         }
 
-        if (!selectedSizeOption || !sizesForSelectedVariant.includes(selectedSizeOption)) {
-            setSelectedSizeOption(sizesForSelectedVariant[0])
+        if (selectedSizeOption && !sizesForSelectedVariant.includes(selectedSizeOption)) {
+            setSelectedSizeOption(null)
         }
     }, [selectedVariantIndex, selectedVariant, selectedSizeOption, variants, getVariantSizes])
 
