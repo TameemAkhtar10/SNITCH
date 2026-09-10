@@ -199,15 +199,14 @@ const ProductDetails = () => {
         setVariantImageIndex(prev => ({ ...prev, [nextIndex]: 0 }))
     }
 
-    const handleSelectSize = (size) => {
-        setSelectedSizeOption(size)
+  const handleSelectSize = (size) => {
+    setSelectedSizeOption(size)
 
-        const nextIndex = chooseVariantIndex({ color: selectedColorOption, size })
-        if (nextIndex === null) return
+    if (!selectedColorOption) {
+        const nextIndex = chooseVariantIndex({ color: null, size })
         setSelectedVariantIndex(nextIndex)
-        setVariantImageIndex(prev => ({ ...prev, [nextIndex]: 0 }))
     }
-
+}
     const handleClearColor = () => {
         setSelectedColorOption(null)
         if (selectedSizeOption) {
@@ -384,7 +383,7 @@ const ProductDetails = () => {
         try {
             setDeliveryLoading(true)
             setDeliveryError('')
-            const response = await axios.get(`hhttps://snitch-aukv.onrender.com/api/delivery/check/${pincode}`, { withCredentials: true })
+            const response = await axios.get(`https://snitch-aukv.onrender.com/api/delivery/check/${pincode}`, { withCredentials: true })
             const data = response?.data
             const maxDays = Number(String(data?.estimatedDeliveryDays || '').split('-')?.[1]?.replace(' days', '')) || 5
             const estimatedDate = new Date()
