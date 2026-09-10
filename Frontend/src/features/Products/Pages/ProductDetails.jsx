@@ -193,8 +193,6 @@ const ProductDetails = () => {
     const handleSelectColor = (color) => {
         setSelectedColorOption(color)
 
-        if (!selectedSizeOption) return
-
         const nextIndex = chooseVariantIndex({ color, size: selectedSizeOption })
         if (nextIndex === null) return
         setSelectedVariantIndex(nextIndex)
@@ -203,8 +201,6 @@ const ProductDetails = () => {
 
     const handleSelectSize = (size) => {
         setSelectedSizeOption(size)
-
-        if (!selectedColor) return
 
         const nextIndex = chooseVariantIndex({ color: selectedColor, size })
         if (nextIndex === null) return
