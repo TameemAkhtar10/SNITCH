@@ -1,10 +1,11 @@
-﻿import React, { useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import html2canvas from 'html2canvas';
+import { API_URL } from '../../../config/api.js';
 
 const orderApi = axios.create({
-  baseURL: 'https://snitch-aukv.onrender.com/api/orders',
+  baseURL: `${API_URL}/api/orders`,
   withCredentials: true,
 });
 

@@ -1,7 +1,8 @@
 import axios from 'axios'
+import { API_URL } from '../../../config/api.js'
 
 const api = axios.create({
-    baseURL: 'https://snitch-aukv.onrender.com/api/user',
+    baseURL: `${API_URL}/api/user`,
     withCredentials: true
 })
 

@@ -28,11 +28,21 @@ const __dirname = path.dirname(__filename);
 
 app.use(cookieParser());
 
+const allowedOrigins = [
+    'http://localhost:5173',
+    'https://snitch-aukv.onrender.com'
+];
+
 app.use(cors({
-    origin: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL || 'https://snitch-aukv.onrender.com/' : 'http://localhost:5173',
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true
 }));
-
 app.use(passport.initialize());
 
 passport.use(new GoogleStrategy({

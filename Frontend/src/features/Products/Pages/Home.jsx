@@ -606,7 +606,7 @@ const Home = () => {
                                     <button onClick={() => { setProfileMenuOpen(false); navigate('/seller'); }} className="px-4 py-2 text-xs uppercase tracking-widest premium-text-muted hover:text-[var(--text-primary)] text-left transition-colors">
                                         Dashboard
                                     </button>
-                                    <button onClick={() => { setProfileMenuOpen(false); navigate('/seller/create-product'); }} className="px-4 py-2 text-xs uppercase tracking-widest premium-text-muted hover:text-[var(--text-primary)] text-left transition-colors">
+                                    <button onClick={() => { setProfileMenuOpen(false); navigate('/seller/create-product'); }} className="px-4 py-2 text-xs uppercase tracking-widest text-primary hover:text-[var(--text-primary)] text-left transition-colors">
                                     </button>
                                 </>
                             ) : (

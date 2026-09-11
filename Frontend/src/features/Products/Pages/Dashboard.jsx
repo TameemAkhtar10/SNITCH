@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import UseProduct from "../Hooks/UseProduct.js";
+import { API_URL } from "../../../config/api.js";
 
 const useDarkMode = () => {
     const [isDark, setIsDark] = useState(true);
@@ -189,7 +190,7 @@ const Dashboard = () => {
                                     try {
                                         const fd = new FormData();
                                         fd.append('file', csvFile);
-                                        const res = await fetch('https://snitch-aukv.onrender.com/api/product/bulk-upload', { method: 'POST', body: fd, credentials: 'include' });
+                                        const res = await fetch(`${API_URL}/api/product/bulk-upload`, { method: 'POST', body: fd, credentials: 'include' });
                                         const data = await res.json();
                                         if (!res.ok) throw data;
                                         const count = data?.data?.count ?? 0;

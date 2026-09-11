@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.js";
+import { API_URL } from "../../../config/api.js";
 
 const useDarkMode = () => {
     const [isDark, setIsDark] = useState(() => {
@@ -33,7 +34,7 @@ const Login = () => {
     const handleGoogleAuth = () => {
         setError("");
         const redirectTo = encodeURIComponent(location.state?.from?.pathname || '/home')
-        window.location.href = `https://snitch-aukv.onrender.com/api/auth/google?redirectTo=${redirectTo}`
+        window.location.href = `${API_URL}/api/auth/google?redirectTo=${redirectTo}`
     };
 
     const handleChange = (event) => {

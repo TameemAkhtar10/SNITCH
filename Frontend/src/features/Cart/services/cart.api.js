@@ -1,6 +1,7 @@
 import axios from "axios";
+import { API_URL } from "../../../config/api.js";
 const api = axios.create({
-    baseURL: 'https://snitch-aukv.onrender.com/api/cart',
+    baseURL: `${API_URL}/api/cart`,
     withCredentials: true,
 })
 

@@ -7,6 +7,7 @@ import { useCart } from '../../Cart/Hooks/UseCart.js'
 import UseWishlist from '../../Wishlist/Hooks/UseWishlist.js'
 import UseReview from '../../Reviews/Hooks/UseReview.js'
 import { addRecentlyViewed } from '../services/recentlyViewed.service.js'
+import { API_URL } from '../../../config/api.js'
 
 const getToken = () => {
     const match = document.cookie.match(new RegExp("(^| )token=([^;]+)"));
@@ -383,7 +384,7 @@ const ProductDetails = () => {
         try {
             setDeliveryLoading(true)
             setDeliveryError('')
-            const response = await axios.get(`https://snitch-aukv.onrender.com/api/delivery/check/${pincode}`, { withCredentials: true })
+            const response = await axios.get(`${API_URL}/api/delivery/check/${pincode}`, { withCredentials: true })
             const data = response?.data
             const maxDays = Number(String(data?.estimatedDeliveryDays || '').split('-')?.[1]?.replace(' days', '')) || 5
             const estimatedDate = new Date()
@@ -734,36 +735,7 @@ const ProductDetails = () => {
                                     </div>
                                 )}
 
-                                {availableSizes.length > 0 && (
-                                    <div>
-                                        <div className="flex items-center justify-between gap-3 mb-4">
-                                            <div className="flex items-center gap-3">
-                                                <p className="text-[10px] uppercase tracking-[0.15em] premium-text-muted">Size</p>
-                                                {selectedSizeOption !== null && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={handleClearSize}
-                                                        className="text-[9px] uppercase tracking-[0.18em] premium-text-muted hover:text-[var(--text-primary)] transition-colors"
-                                                    >
-                                                        × Clear
-                                                    </button>
-                                                )}
-                                            </div>
-                                            <button type="button" className="text-[10px] uppercase tracking-[0.1em] underline underline-offset-4 premium-text-muted hover:text-[var(--text-primary)]">Size Guide</button>
-                                        </div>
-                                        <div className="flex flex-wrap gap-3">
-                                            {availableSizes.map((s) => (
-                                                <button
-                                                    key={s}
-                                                    onClick={() => handleSelectSize(s)}
-                                                    className={`w-14 h-14 flex items-center justify-center text-xs uppercase transition-all border ${selectedSize === s ? 'border-[var(--text-primary)] premium-text bg-[var(--text-primary)]/5' : 'border-[var(--border)] premium-text-muted hover:border-[var(--text-primary)]'}`}
-                                                >
-                                                    {String(s)}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
+                
 
                                 {availableColors.length === 0 && availableSizes.length === 0 && (
                                     <div>
